@@ -1,8 +1,8 @@
 import org.junit.Assert;
 import org.junit.Test;
 
-public class MainTest {
-    
+public class HealthScoreCalculatorTest {
+
     @Test
     public void test() {
         String hello = "Hello World";

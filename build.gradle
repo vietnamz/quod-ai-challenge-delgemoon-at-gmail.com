@@ -1,5 +1,5 @@
 plugins {
-    id 'java'
+    id 'application'
 }
 
 group 'ai.quod'
@@ -11,7 +11,7 @@ repositories {
     mavenCentral()
 }
 
-apply plugin: 'java'
+apply plugin: 'application'
 
 test {
     testLogging {
@@ -20,11 +20,17 @@ test {
     }
 }
 
+application {
+  // URI of your main class/application's entry point (required)
+  mainClassName = 'HealthScoreCalculator'
+}
+
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
     testCompile group: 'org.mockito', name: 'mockito-core', version: '2.1.0'
     testCompile group: 'org.mock-server', name: 'mockserver-netty', version: '3.9.1'
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.29'
+    compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.29'
     compile group: 'commons-io', name: 'commons-io', version: '2.6'
     compile group: 'commons-codec', name: 'commons-codec', version: '1.13'
     compile group: 'org.springframework', name: 'spring-core', version: '5.2.1.RELEASE'
