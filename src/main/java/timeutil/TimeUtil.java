@@ -25,4 +25,15 @@ public class TimeUtil {
         }
     }
 
+    public static Optional<Long> convertStringToEpochDay(String dateTime) {
+        try {
+            return Optional.of(LocalDateTime
+                    .ofInstant(Instant.parse(dateTime), ZoneId.of("Zulu"))
+                    .toLocalDate()
+                    .toEpochDay());
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
 }

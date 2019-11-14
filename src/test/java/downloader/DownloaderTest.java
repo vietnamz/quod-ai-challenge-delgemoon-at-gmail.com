@@ -1,9 +1,9 @@
 package downloader;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.MockitoAnnotations;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,7 +11,7 @@ import java.util.Optional;
 
 public class DownloaderTest {
 
-    private String rootFolder = "src/test/resource/githubtest";
+    private String rootFolder = "src/test/resources/githubtest";
 
     private void deleteDirectoryRecursion(File file) throws IOException {
         if (file.isDirectory()) {
@@ -29,8 +29,6 @@ public class DownloaderTest {
 
     @Before
     public void setup() {
-        MockitoAnnotations.initMocks(this);
-
 
         // Make folder to save file
         File dir = new File(rootFolder);
@@ -42,12 +40,24 @@ public class DownloaderTest {
         dir.mkdirs();
     }
 
+    @After
+    public void tearDown() {
+
+        // Make folder to save file
+        File dir = new File(rootFolder);
+        try {
+            deleteDirectoryRecursion(dir);
+        } catch (IOException ex) {
+        }
+        
+    }
+
     @Test()
     public void downloadResource_Success() {
         String url = "https://data.gharchive.org/2015-01-01-15.json.gz";
         Optional<String> outputFile = Downloader.downloadResource(url, rootFolder);
 
-        Assert.assertEquals(outputFile.get(), "src/test/resource/githubtest/2015-01-01-15.json.gz");
+        Assert.assertEquals(outputFile.get(), "src/test/resources/githubtest/2015-01-01-15.json.gz");
 
     }
 
