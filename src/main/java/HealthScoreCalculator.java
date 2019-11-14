@@ -1,11 +1,16 @@
+import downloader.Downloader;
+import fileutil.FileUtil;
+import github.GithubJsonParser;
+import github.Project;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import timeutil.TimeUtil;
 
+import java.io.File;
+import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * The type HealthScoreCalculator.
@@ -18,6 +23,8 @@ public class HealthScoreCalculator {
 
 
     private List<String> anHoursFiles = new ArrayList<>();
+    private List<String> listOfJsonFiles = new ArrayList<>();
+    private Map<Long, Project> projects = new HashMap<>();
 
 
     /**
@@ -92,6 +99,118 @@ public class HealthScoreCalculator {
         return anHoursFiles;
     }
 
+    public List<String> getListOfJsonFiles() {
+        return listOfJsonFiles;
+    }
+
+    public Map<Long, Project> getProjects() {
+        return projects;
+    }
+
+    public void deleteDirectoryRecursion(File file) throws IOException {
+        if (file.isDirectory()) {
+            File[] entries = file.listFiles();
+            if (entries != null) {
+                for (File entry : entries) {
+                    deleteDirectoryRecursion(entry);
+                }
+            }
+        }
+        if (!file.delete()) {
+            throw new IOException("Failed to delete " + file);
+        }
+    }
+
+    public void downloadAndStoreFile(String location) throws IllegalStateException {
+
+        if (this.getAnHoursFiles().size() == 0) {
+            throw new IllegalStateException("Please make sure you input the start date and end date first");
+        }
+
+        this.listOfJsonFiles = this.getAnHoursFiles().parallelStream().map(s -> Downloader.downloadResource(s, location))
+                .peek(o -> {
+                    if (!o.isPresent()) {
+                        LOGGER.error("Problem with download file");
+                    }
+                })
+                .filter(o -> o.isPresent())
+                .map(o -> o.get())
+                .map(s -> FileUtil.gunzipIt(s))
+                .peek(o -> {
+                    if (!o.isPresent()) {
+                        LOGGER.error("Problem with unzip the file");
+                    }
+                })
+                .filter(o -> o.isPresent())
+                .map(o -> o.get())
+                .collect(Collectors.toList());
+    }
+
+    public void readProjectInformation() throws IllegalStateException {
+        if (this.listOfJsonFiles.size() == 0) {
+            LOGGER.warn("No data is download yet!!!!");
+            throw new IllegalStateException("No data is download yet!!!!");
+        }
+        this.listOfJsonFiles.stream().map(f -> FileUtil.getLines(f))
+                .peek(o -> {
+                    if (!o.isPresent()) {
+                        LOGGER.error("Problem with opening file");
+                    }
+                })
+                .filter(o -> o.isPresent())
+                .flatMap(s -> s.get())
+                .map(s -> {
+                    return new GithubJsonParser().readRepoInfo(s, false);
+                })
+                .peek(o -> {
+                    if (!o.isPresent()) {
+                        LOGGER.warn("The data is invalid");
+                    }
+                })
+                .filter(o -> o.isPresent())
+                .map(s -> s.get())
+                .forEach(s -> {
+                    if (s.containsKey("id")) {
+                        if (projects.containsKey(s.get("id"))) {
+                            return;
+                        } else {
+                            Project project = new Project();
+                            Long id = (Long) s.get("id");
+                            project.setId(id);
+                            if (s.containsKey("name")) {
+                                String name = (String) s.get("name");
+                                String org = name.substring(0, name.indexOf("/"));
+                                String projectName = name.substring(name.indexOf("/") + 1);
+                                project.setName(projectName);
+                                project.setOrg(org);
+                                projects.put((Long) s.get("id"), project);
+                            }
+                        }
+                    }
+                });
+
+    }
+
+    public void calculateHealthyScore() {
+        if (this.getProjects().size() == 0) {
+            throw new IllegalStateException("Please start downloading file and store before do calculation");
+        }
+        Integer maxNumberOfcommit = this.getProjects().values().parallelStream()
+                .max(Comparator.comparing(Project::getNumCommit)).get().getNumCommit();
+        Integer minNumberOfcommit = this.getProjects().values().parallelStream()
+                .min(Comparator.comparing(Project::getNumCommit)).get().getNumCommit();
+        Iterator<Map.Entry<Long, Project>> entrySet = projects.entrySet().iterator();
+        while (entrySet.hasNext()) {
+            Map.Entry<Long, Project> entry = entrySet.next();
+            Project project = entry.getValue();
+            Float healtyScore = null;
+            Float numOfCommitMetric =
+                    ((float) project.getNumCommit() - (float) minNumberOfcommit) / (float) maxNumberOfcommit - (float) (minNumberOfcommit);
+            healtyScore = numOfCommitMetric;
+            project.setHeathyScore(healtyScore);
+        }
+    }
+
     /**
      * The entry point of application.
      *
@@ -106,7 +225,7 @@ public class HealthScoreCalculator {
          * validate the user input date to make it's as we expected
          */
         healthScoreCalculator.validateDateTimeInput(args[0], args[1]);
-
+        healthScoreCalculator.downloadAndStoreFile("src/main/resources/githubdata");
 
     }
 }
