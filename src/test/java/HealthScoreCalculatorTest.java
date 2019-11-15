@@ -66,13 +66,13 @@ public class HealthScoreCalculatorTest {
     @Test
     public void healthScoreCalculator_downloadAndStore_success() {
         HealthScoreCalculator healthScoreCalculator = new HealthScoreCalculator();
-        healthScoreCalculator.validateDateTimeInput("2019-10-07T00:00:00Z", "2019-10-14T01:00:00Z");
+        healthScoreCalculator.validateDateTimeInput("2019-10-14T00:00:00Z", "2019-10-14T01:00:00Z");
         healthScoreCalculator.downloadAndStoreFile(rootFolder);
         healthScoreCalculator.readProjectInformation();
         Map<Long, Project> projectMap = healthScoreCalculator.getProjects();
-        Project project = projectMap.get(209449775L);
-        Assert.assertEquals(project.getName(), "ALGORITHM");
-        Assert.assertEquals(project.getOrg(), "godhpjh");
+        Project project = projectMap.get(214733191L);
+        Assert.assertEquals(project.getName(), "artist-song-modules-online-web-pt-090819");
+        Assert.assertEquals(project.getOrg(), "ETyannikov");
         NumOfCommitPerDays
                 .calculateNumOfCommitPerDay(healthScoreCalculator.getListOfJsonFiles(),
                         healthScoreCalculator.getProjects());

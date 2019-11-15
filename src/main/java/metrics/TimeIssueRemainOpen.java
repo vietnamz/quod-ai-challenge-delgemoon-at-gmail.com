@@ -82,7 +82,6 @@ public class TimeIssueRemainOpen {
 
 
                     });
-            issues.entrySet().parallelStream().max()
         } catch (Exception e) {
             LOGGER.error("There is a error while calculating number of commit {}", e.getMessage());
             return Optional.empty();

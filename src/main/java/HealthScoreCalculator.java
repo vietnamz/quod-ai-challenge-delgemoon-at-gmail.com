@@ -2,6 +2,7 @@ import downloader.Downloader;
 import fileutil.FileUtil;
 import github.GithubJsonParser;
 import github.Project;
+import metrics.NumOfCommitPerDays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import timeutil.TimeUtil;
@@ -21,7 +22,7 @@ public class HealthScoreCalculator {
 
     private final static String githubArchiveUrl = "https://data.gharchive.org/";
 
-
+    LocalDateTime endDate = null;
     private List<String> anHoursFiles = new ArrayList<>();
     private List<String> listOfJsonFiles = new ArrayList<>();
     private Map<Long, Project> projects = new HashMap<>();
@@ -86,9 +87,13 @@ public class HealthScoreCalculator {
             anHoursFiles.add(sb.toString());
             localDateTime = localDateTime.minusHours(1);
         }
+        this.endDate = endDateTime;
 
     }
 
+    public LocalDateTime getEndDate() {
+        return endDate;
+    }
 
     /**
      * Gets an hours files.
@@ -226,6 +231,17 @@ public class HealthScoreCalculator {
          */
         healthScoreCalculator.validateDateTimeInput(args[0], args[1]);
         healthScoreCalculator.downloadAndStoreFile("src/main/resources/githubdata");
+        healthScoreCalculator.readProjectInformation();
+        NumOfCommitPerDays
+                .calculateNumOfCommitPerDay(healthScoreCalculator.getListOfJsonFiles(),
+                        healthScoreCalculator.getProjects());
+        healthScoreCalculator.calculateHealthyScore();
+        try {
+            healthScoreCalculator.deleteDirectoryRecursion(new File("src/main/resources/githubdata"));
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        FileUtil.writeOutToCSV(healthScoreCalculator.getProjects(), "health_scores.csv");
 
     }
 }
