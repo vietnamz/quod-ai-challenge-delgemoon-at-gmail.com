@@ -29,4 +29,10 @@ public class TimeUtilTest {
             System.out.println("Failed to convert");
         }
     }
+
+    @Test
+    public void timeUtil_convertTime_WhenSuccessToEpochTime() {
+        Optional<Long> time = TimeUtil.convertStringToEpochSecond("2019-09-10T23:56:17Z");
+        System.out.println(time.get());
+    }
 }

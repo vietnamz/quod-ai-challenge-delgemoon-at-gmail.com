@@ -3,6 +3,7 @@ package timeutil;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Optional;
 
 /**
@@ -20,6 +21,14 @@ public class TimeUtil {
     public static Optional<LocalDateTime> convertStringToDateTime(String dateTime) {
         try {
             return Optional.of(LocalDateTime.ofInstant(Instant.parse(dateTime), ZoneId.of("Zulu")));
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    public static Optional<Long> convertStringToEpochSecond(String dateTime) {
+        try {
+            return Optional.of(LocalDateTime.ofInstant(Instant.parse(dateTime), ZoneId.of("Zulu")).toEpochSecond(ZoneOffset.of("Z")));
         } catch (Exception e) {
             return Optional.empty();
         }

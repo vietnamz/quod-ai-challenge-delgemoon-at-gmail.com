@@ -31,7 +31,21 @@ public class GithubJsonParserTest {
         Map<String, Object> issues = githubJsonParser
                 .readIssueRemainOpen("src/test/resources/test_individual_3.json", true).get();
         Assert.assertEquals(issues.get("id"), 18510170L);
-        System.out.println(issues.get("created_at"));
         Assert.assertEquals(issues.get("created_at"), "2015-01-01T07:28:55Z");
+        Assert.assertEquals(issues.get("closed_at"), "2015-01-01T15:03:09Z");
+        Assert.assertEquals(issues.get("action"), "closed");
+        Assert.assertEquals(issues.get("issue_id"), 53214955L);
+    }
+
+    @Test
+    public void githubJsonParser_readIssueRemainOpen_success1() {
+        GithubJsonParser githubJsonParser = new GithubJsonParser();
+        Map<String, Object> issues = githubJsonParser
+                .readIssueRemainOpen("src/test/resources/test_individual_4.json", true).get();
+        Assert.assertEquals(issues.get("id"), 18510170L);
+        Assert.assertEquals(issues.get("created_at"), "2015-01-01T07:28:55Z");
+        Assert.assertEquals(issues.get("closed_at"), "null");
+        Assert.assertEquals(issues.get("action"), "opened");
+        Assert.assertEquals(issues.get("issue_id"), 53214955L);
     }
 }

@@ -56,13 +56,18 @@ public class GithubJsonParser {
 
     private int readIssuePayload(JsonParser jsonParser, Map<String, Object> aMap) {
         try {
+            boolean readIssueId = false;
             while (jsonParser.nextToken() != null) {
                 String property = jsonParser.getText();
                 switch (property) {
                     case "id":
+                        if (readIssueId) {
+                            break;
+                        }
                         jsonParser.nextValue();
                         Long id = jsonParser.getLongValue();
                         aMap.put("issue_id", id);
+                        readIssueId = true;
                         break;
                     case "action":
                         jsonParser.nextValue();
