@@ -45,4 +45,15 @@ public class TimeUtil {
         }
     }
 
+    public static Optional<Long> minusTwoTime(String dateTime) {
+        try {
+            return Optional.of(LocalDateTime
+                    .ofInstant(Instant.parse(dateTime), ZoneId.of("Zulu"))
+                    .toLocalDate()
+                    .toEpochDay());
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
 }

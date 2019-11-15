@@ -8,16 +8,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import timeutil.TimeUtil;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * The type Time issue remain open.
  */
 public class TimeIssueRemainOpen {
-    private static final Logger LOGGER = LoggerFactory.getLogger(NumOfCommitPerDays.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(TimeIssueRemainOpen.class);
 
     /**
      * Calculate time issue remain open optional.
@@ -63,11 +60,12 @@ public class TimeIssueRemainOpen {
                         String createdAt = (String) s.get("created_at");
                         String closedAt = (String) s.get("closed_at");
                         Long issueId = (Long) s.get("issue_id");
-                        String action = (String) s.get("action");
                         // In case the issue is open state, We haven't had the close yet. Just fill the end time.
                         if (closedAt.equals("null")) {
                             closedAt = defaultCloseAt;
                         }
+                        // REVIEW: Do we really need to make this to second.
+                        // The value seem to be big. and not reliable. But I have to go with this approach first.
                         Long openTimeEpoch = TimeUtil.convertStringToEpochSecond(createdAt).get();
                         Long closeTimeEpoch = TimeUtil.convertStringToEpochSecond(closedAt).get();
                         if (issues.containsKey(id)) {
@@ -80,8 +78,24 @@ public class TimeIssueRemainOpen {
                             issues.put(id, issue);
                         }
 
-
                     });
+
+            Map.Entry<Long, Issue> maxValueEntry = issues.entrySet()
+                    .parallelStream()
+                    .max(Comparator.comparing(i -> i.getValue().calculateTheAverageIssueOpen()))
+                    .get();
+            Long maxValue = maxValueEntry.getValue().calculateTheAverageIssueOpen();
+            issues.entrySet().stream().forEach(e -> {
+                if (projects.containsKey(e.getKey())) {
+                    projects.get(e.getKey()).setAverageIssueOpen(e.getValue().calculateTheAverageIssueOpen());
+                }
+            });
+            // We must set the max value into the N/A value. Sine it will divide by minimum value.
+            projects.entrySet().parallelStream().forEach(e -> {
+                if (e.getValue().getAverageIssueOpen() == 0L) { // equal to default value. fill max into it.
+                    e.getValue().setAverageIssueOpen(maxValue);
+                }
+            });
         } catch (Exception e) {
             LOGGER.error("There is a error while calculating number of commit {}", e.getMessage());
             return Optional.empty();

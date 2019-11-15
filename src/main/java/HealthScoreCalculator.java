@@ -22,7 +22,7 @@ public class HealthScoreCalculator {
 
     private final static String githubArchiveUrl = "https://data.gharchive.org/";
 
-    LocalDateTime endDate = null;
+    String endDate = null;
     private List<String> anHoursFiles = new ArrayList<>();
     private List<String> listOfJsonFiles = new ArrayList<>();
     private Map<Long, Project> projects = new HashMap<>();
@@ -72,7 +72,7 @@ public class HealthScoreCalculator {
                     "The start date must be after the end date"
             );
         }
-        LocalDateTime localDateTime = endDateTime;
+        LocalDateTime localDateTime = endDateTime.minusHours(1); // [Start, end). exclude the end time.
         while (true) {
             if (localDateTime.isBefore(startDateTime)) {
                 break;
@@ -87,11 +87,11 @@ public class HealthScoreCalculator {
             anHoursFiles.add(sb.toString());
             localDateTime = localDateTime.minusHours(1);
         }
-        this.endDate = endDateTime;
+        this.endDate = endDate;
 
     }
 
-    public LocalDateTime getEndDate() {
+    public String getEndDate() {
         return endDate;
     }
 
@@ -204,15 +204,40 @@ public class HealthScoreCalculator {
                 .max(Comparator.comparing(Project::getNumCommit)).get().getNumCommit();
         Integer minNumberOfcommit = this.getProjects().values().parallelStream()
                 .min(Comparator.comparing(Project::getNumCommit)).get().getNumCommit();
+        Long minTimeIssueRemainingOpen = this.getProjects().values().parallelStream()
+                .min(Comparator.comparing(Project::getAverageIssueOpen)).get().getAverageIssueOpen();
+        Integer maxRatioCommitPerDev = this.getProjects().values().parallelStream()
+                .max(Comparator.comparing(Project::getRatioCommitPerDev)).get().getRatioCommitPerDev();
+        Integer minRatioCommitPerDev = this.getProjects().values().parallelStream()
+                .min(Comparator.comparing(Project::getRatioCommitPerDev)).get().getRatioCommitPerDev();
+        Long minTimePullRequestGetMerged = this.getProjects().values().parallelStream()
+                .min(Comparator.comparing(Project::getAveragePullRequestGetMerged)).get().getAveragePullRequestGetMerged();
+        Long maxTimePullRequestGetMerged = this.getProjects().values().parallelStream()
+                .max(Comparator.comparing(Project::getAveragePullRequestGetMerged)).get().getAveragePullRequestGetMerged();
+        LOGGER.info("maxTimePullRequestGetMerged {}", maxTimePullRequestGetMerged);
         Iterator<Map.Entry<Long, Project>> entrySet = projects.entrySet().iterator();
         while (entrySet.hasNext()) {
             Map.Entry<Long, Project> entry = entrySet.next();
             Project project = entry.getValue();
-            Float healtyScore = null;
-            Float numOfCommitMetric =
-                    ((float) project.getNumCommit() - (float) minNumberOfcommit) / (float) maxNumberOfcommit - (float) (minNumberOfcommit);
-            healtyScore = numOfCommitMetric;
-            project.setHeathyScore(healtyScore);
+            Float numOfCommitMetric = 0F;
+            if (maxNumberOfcommit != 0) {
+                numOfCommitMetric = ((float) project.getNumCommit() - (float) minNumberOfcommit) / ((float) maxNumberOfcommit - (float) minNumberOfcommit);
+            }
+            Float numTimeIssueRemainMetric = 0F;
+            if (project.getAverageIssueOpen() != 0) {
+                numTimeIssueRemainMetric = (float) minTimeIssueRemainingOpen / (float) project.getAverageIssueOpen();
+            }
+
+            Float ratioCommitPerDevMetric = 0F;
+            if (maxRatioCommitPerDev != 0) {
+                ratioCommitPerDevMetric = ((float) project.getRatioCommitPerDev() - (float) minRatioCommitPerDev) / ((float) maxRatioCommitPerDev - (float) minRatioCommitPerDev);
+            }
+            Float numTimePullRequestGetMergedMetric = 0F;
+            if (maxTimePullRequestGetMerged != 0) {
+                numTimePullRequestGetMergedMetric = ((float) project.getAveragePullRequestGetMerged() - (float) minTimePullRequestGetMerged) / ((float) maxTimePullRequestGetMerged - (float) minTimePullRequestGetMerged);
+            }
+            Float healthyScore = numOfCommitMetric + numTimeIssueRemainMetric + ratioCommitPerDevMetric + numTimePullRequestGetMergedMetric;
+            project.setHeathyScore(healthyScore);
         }
     }
 

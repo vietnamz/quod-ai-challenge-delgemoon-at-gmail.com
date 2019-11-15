@@ -69,6 +69,13 @@ public class FileUtil {
             csvWriter.append("health_score");
             csvWriter.append(",");
             csvWriter.append("num_commits");
+            csvWriter.append(",");
+            csvWriter.append("time_issue_remain_open");
+            csvWriter.append(",");
+            csvWriter.append("pull_request_get_merged");
+            csvWriter.append(",");
+            csvWriter.append("ratio_commit_per_dev");
+
             csvWriter.append("\n");
             int count = 0;
 
@@ -92,7 +99,22 @@ public class FileUtil {
                     csvWriter.append("N/A").append(",");
                 }
                 if (project.getNumCommit() != null) {
-                    csvWriter.append(project.getNumCommit().toString()).append("\n");
+                    csvWriter.append(project.getNumCommit().toString()).append(",");
+                } else {
+                    csvWriter.append("N/A").append(",");
+                }
+                if (project.getAverageIssueOpen() != null) {
+                    csvWriter.append(project.getAverageIssueOpen().toString()).append(",");
+                } else {
+                    csvWriter.append("N/A").append(",");
+                }
+                if (project.getAveragePullRequestGetMerged() != null) {
+                    csvWriter.append(project.getAveragePullRequestGetMerged().toString()).append(",");
+                } else {
+                    csvWriter.append("N/A").append(",");
+                }
+                if (project.getRatioCommitPerDev() != null) {
+                    csvWriter.append(project.getRatioCommitPerDev().toString()).append("\n");
                 } else {
                     csvWriter.append("N/A").append("\n");
                 }

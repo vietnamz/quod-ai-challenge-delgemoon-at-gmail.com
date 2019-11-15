@@ -8,6 +8,11 @@ public class Project {
 
     private Float heathyScore = 0.0F;
     private Integer numCommit = 0;
+    private Long averageIssueOpen = 0L;
+
+    private Integer ratioCommitPerDev = 0;
+
+    private Long averagePullRequestGetMerged = 0L;
 
     public void setOrg(String org) {
         this.org = org;
@@ -22,6 +27,14 @@ public class Project {
         this.name = name;
         this.heathyScore = heathyScore;
         this.numCommit = numCommit;
+    }
+
+    public Integer getRatioCommitPerDev() {
+        return ratioCommitPerDev;
+    }
+
+    public void setRatioCommitPerDev(Integer ratioCommitPerDev) {
+        this.ratioCommitPerDev = ratioCommitPerDev;
     }
 
     public void setHeathyScore(Float heathyScore) {
@@ -60,4 +73,19 @@ public class Project {
         return name;
     }
 
+    public Long getAverageIssueOpen() {
+        return averageIssueOpen;
+    }
+
+    public void setAverageIssueOpen(Long averageIssueOpen) {
+        this.averageIssueOpen = averageIssueOpen;
+    }
+
+    public Long getAveragePullRequestGetMerged() {
+        return averagePullRequestGetMerged;
+    }
+
+    public void setAveragePullRequestGetMerged(Long averagePullRequestGetMerged) {
+        this.averagePullRequestGetMerged = averagePullRequestGetMerged;
+    }
 }

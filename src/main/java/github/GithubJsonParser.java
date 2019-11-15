@@ -54,6 +54,74 @@ public class GithubJsonParser {
         }
     }
 
+    private int readActor(JsonParser jsonParser, Map<String, Object> aMap) {
+        try {
+            while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
+                String property = jsonParser.getText();
+                switch (property) {
+                    case "id":
+                        jsonParser.nextValue();
+                        Long id = jsonParser.getLongValue();
+                        aMap.put("actor_id", id);
+                    default:
+                        break;
+                }
+            }
+            return 0;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    private int readPullRequest(JsonParser jsonParser, Map<String, Object> aMap) {
+        try {
+            boolean readFullRequestId = false;
+            boolean readCreatedAt = false;
+            boolean readMergedAt = false;
+            while (jsonParser.nextToken() != null) {
+                String property = jsonParser.getText();
+                switch (property) {
+                    case "id":
+                        if (readFullRequestId) {
+                            break;
+                        }
+                        jsonParser.nextValue();
+                        Long id = jsonParser.getLongValue();
+                        aMap.put("pull_request_id", id);
+                        readFullRequestId = true;
+                        break;
+                    case "merged":
+                        jsonParser.nextValue();
+                        boolean merged = jsonParser.getBooleanValue();
+                        aMap.put("merged", merged);
+                        return 0;
+                    case "created_at":
+                        if (readCreatedAt) {
+                            break;
+                        }
+                        jsonParser.nextToken();
+                        String CreatedAt = jsonParser.getText();
+                        aMap.put("created_at", CreatedAt);
+                        readCreatedAt = true;
+                        break;
+                    case "merged_at":
+                        if (readMergedAt) {
+                            break;
+                        }
+                        jsonParser.nextToken();
+                        String mergedAt = jsonParser.getText();
+                        aMap.put("merged_at", mergedAt);
+                        readMergedAt = true;
+                        break;
+
+                }
+            }
+            return 0;
+        } catch (Exception e) {
+            return -1; // will handle later or we might have to refactor this logic
+        }
+    }
+
     private int readIssuePayload(JsonParser jsonParser, Map<String, Object> aMap) {
         try {
             boolean readIssueId = false;
@@ -191,6 +259,7 @@ public class GithubJsonParser {
                         }
                         break;
                     case "actor":
+                        readActor(jsonParser, aMap);
                         break;
                     case "repo":
                         readRepo(jsonParser, aMap);
@@ -263,6 +332,60 @@ public class GithubJsonParser {
                     case "public":
                         break;
                     case "created_at":
+                        break;
+                    default:
+                        break;
+                }
+                if (stop) {
+                    break;
+                }
+            }
+            jsonParser.close();
+        } catch (Exception e) {
+            try {
+                if (jsonParser != null) {
+                    jsonParser.close();
+                }
+                return Optional.empty();
+            } catch (Exception ex) {
+                return Optional.empty();
+            }
+        }
+        return Optional.of(aMap);
+
+    }
+
+    public Optional<Map<String, Object>> readMergedPullRequest(String content, boolean isFile) {
+        Map<String, Object> aMap = new HashMap<>();
+        JsonParser jsonParser = null;
+        try {
+            if (isFile) {
+                jsonParser = jsonFactory.createParser(new FileInputStream(content));
+            } else {
+                jsonParser = jsonFactory.createParser(content);
+            }
+            boolean stop = false;
+            while (jsonParser.nextToken() != null) {
+                String property = jsonParser.getText();
+                if (property == null) {
+                    continue;
+                }
+                switch (property) {
+                    case "id":
+                        break;
+                    case "type":
+                        jsonParser.nextValue();
+                        String type = jsonParser.getText();
+                        if (!type.equals("PullRequestEvent")) {
+                            throw new IllegalArgumentException("Just throw something to close stream");
+                        }
+                        break;
+                    case "pull_request":
+                        readPullRequest(jsonParser, aMap);
+                        stop = true;
+                        break;
+                    case "repo":
+                        readRepo(jsonParser, aMap);
                         break;
                     default:
                         break;
