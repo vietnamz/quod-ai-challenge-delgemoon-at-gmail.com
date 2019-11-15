@@ -42,7 +42,10 @@ public class Downloader {
 
         try {
             URL url = new URL(sourceUrl);
+            System.setProperty("http.agent", "Chrome");
             httpConn = (HttpURLConnection) url.openConnection();
+            httpConn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.29 Safari/537.36");
+
 
             // Connect to server
             httpConn.connect();

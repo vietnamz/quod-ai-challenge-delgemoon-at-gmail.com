@@ -2,7 +2,10 @@ import downloader.Downloader;
 import fileutil.FileUtil;
 import github.GithubJsonParser;
 import github.Project;
+import metrics.MergedPullRequest;
 import metrics.NumOfCommitPerDays;
+import metrics.RatioCommitPerDev;
+import metrics.TimeIssueRemainOpen;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import timeutil.TimeUtil;
@@ -214,7 +217,6 @@ public class HealthScoreCalculator {
                 .min(Comparator.comparing(Project::getAveragePullRequestGetMerged)).get().getAveragePullRequestGetMerged();
         Long maxTimePullRequestGetMerged = this.getProjects().values().parallelStream()
                 .max(Comparator.comparing(Project::getAveragePullRequestGetMerged)).get().getAveragePullRequestGetMerged();
-        LOGGER.info("maxTimePullRequestGetMerged {}", maxTimePullRequestGetMerged);
         Iterator<Map.Entry<Long, Project>> entrySet = projects.entrySet().iterator();
         while (entrySet.hasNext()) {
             Map.Entry<Long, Project> entry = entrySet.next();
@@ -260,6 +262,12 @@ public class HealthScoreCalculator {
         NumOfCommitPerDays
                 .calculateNumOfCommitPerDay(healthScoreCalculator.getListOfJsonFiles(),
                         healthScoreCalculator.getProjects());
+        TimeIssueRemainOpen.calculateTimeIssueRemainOpen(healthScoreCalculator.getListOfJsonFiles(),
+                healthScoreCalculator.getProjects(), healthScoreCalculator.getEndDate());
+        RatioCommitPerDev.calculateRatioCommitPerDev(healthScoreCalculator.getListOfJsonFiles(),
+                healthScoreCalculator.getProjects());
+        MergedPullRequest.calculatePullRequestGetMerged(healthScoreCalculator.getListOfJsonFiles(),
+                healthScoreCalculator.getProjects());
         healthScoreCalculator.calculateHealthyScore();
         try {
             healthScoreCalculator.deleteDirectoryRecursion(new File("src/main/resources/githubdata"));
