@@ -18,6 +18,12 @@ test {
         outputs.upToDateWhen {false}
         showStandardStreams = true
     }
+    // set heap size for the test JVM(s)
+    minHeapSize = "128m"
+    maxHeapSize = "2g"
+
+    // set JVM arguments for the test JVM(s)
+    jvmArgs '-XX:MaxPermSize=2048m'
 }
 
 application {
