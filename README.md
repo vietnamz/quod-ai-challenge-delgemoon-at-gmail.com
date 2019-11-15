@@ -10,10 +10,10 @@
 
 # Technical decision
 
-Json proccessing: Decided to use stream api feature of jackson json libs.
+Json processing: Decided to use stream api feature of jackson json libs.
 Since I don't want to load every json structure into memory. There are other libs but, I am not familiar with them.
 
-There are many room to improve. For the current design, I will re-read the json file from disk file to calculate the metric one by one.
+There are many room to improve. For the current design, It re-read the json file from disk file to calculate the metric one by one.
 We can improve it by build a data structure to keep the data when scanning the json file by using jackson stream api just once,
 by using the jackson stream api We only need to read the property that we are interested in.
 
