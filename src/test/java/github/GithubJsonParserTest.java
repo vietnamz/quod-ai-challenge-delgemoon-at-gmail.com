@@ -57,8 +57,20 @@ public class GithubJsonParserTest {
                 .readMergedPullRequest("src/test/resources/test_individual_5.json", true).get();
         Assert.assertEquals(pullRequest.get("id"), 13315164L);
         Assert.assertEquals(pullRequest.get("created_at"), "2013-11-18T12:59:21Z");
+        Assert.assertEquals(pullRequest.get("updated_at"), "2015-01-01T15:00:42Z");
         Assert.assertEquals(pullRequest.get("merged_at"), "null");
         Assert.assertEquals(pullRequest.get("merged"), false);
         Assert.assertEquals(pullRequest.get("pull_request_id"), 10047845L);
+        Assert.assertEquals(pullRequest.get("state"), "closed");
+    }
+
+    @Test
+    public void githubJsonParser_readNumOfRelease_success() {
+        GithubJsonParser githubJsonParser = new GithubJsonParser();
+        Map<String, Object> releases = githubJsonParser
+                .readNumberOfRelease("src/test/resources/test_individual_6.json", true).get();
+        Assert.assertEquals(releases.get("id"), 28688179L);
+        Assert.assertEquals(releases.get("action"), "published"); // collect action to filter. just care about published.
+        Assert.assertEquals(releases.get("release_id"), 818679L);
     }
 }

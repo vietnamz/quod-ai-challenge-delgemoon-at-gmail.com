@@ -2,10 +2,7 @@ import downloader.Downloader;
 import fileutil.FileUtil;
 import github.GithubJsonParser;
 import github.Project;
-import metrics.MergedPullRequest;
-import metrics.NumOfCommitPerDays;
-import metrics.RatioCommitPerDev;
-import metrics.TimeIssueRemainOpen;
+import metrics.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import timeutil.TimeUtil;
@@ -217,6 +214,14 @@ public class HealthScoreCalculator {
                 .min(Comparator.comparing(Project::getAveragePullRequestGetMerged)).get().getAveragePullRequestGetMerged();
         Long maxTimePullRequestGetMerged = this.getProjects().values().parallelStream()
                 .max(Comparator.comparing(Project::getAveragePullRequestGetMerged)).get().getAveragePullRequestGetMerged();
+        Integer minNumOfRelease = this.getProjects().values().parallelStream()
+                .min(Comparator.comparing(Project::getNumOfReleases)).get().getNumOfReleases();
+        Integer maxNumOfRelease = this.getProjects().values().parallelStream()
+                .max(Comparator.comparing(Project::getNumOfReleases)).get().getNumOfReleases();
+        Integer minNumOfOpenPullRequest = this.getProjects().values().parallelStream()
+                .min(Comparator.comparing(Project::getNumOfOpenPullRequest)).get().getNumOfOpenPullRequest();
+        Integer maxNumOfOpenPullRequest = this.getProjects().values().parallelStream()
+                .max(Comparator.comparing(Project::getNumOfOpenPullRequest)).get().getNumOfOpenPullRequest();
         Iterator<Map.Entry<Long, Project>> entrySet = projects.entrySet().iterator();
         while (entrySet.hasNext()) {
             Map.Entry<Long, Project> entry = entrySet.next();
@@ -238,7 +243,15 @@ public class HealthScoreCalculator {
             if (maxTimePullRequestGetMerged != 0) {
                 numTimePullRequestGetMergedMetric = ((float) project.getAveragePullRequestGetMerged() - (float) minTimePullRequestGetMerged) / ((float) maxTimePullRequestGetMerged - (float) minTimePullRequestGetMerged);
             }
-            Float healthyScore = numOfCommitMetric + numTimeIssueRemainMetric + ratioCommitPerDevMetric + numTimePullRequestGetMergedMetric;
+            Float numOfReleaseMetric = 0F;
+            if (maxNumOfRelease != 0) {
+                numOfReleaseMetric = ((float) project.getNumOfReleases() - (float) minNumOfRelease) / ((float) maxNumOfRelease - (float) minNumOfRelease);
+            }
+            Float numOfOpenPullRequestMetric = 0F;
+            if (maxNumOfOpenPullRequest != 0) {
+                numOfOpenPullRequestMetric = ((float) project.getNumOfOpenPullRequest() - (float) minNumOfOpenPullRequest) / ((float) maxNumOfOpenPullRequest - (float) minNumOfOpenPullRequest);
+            }
+            Float healthyScore = numOfCommitMetric + numTimeIssueRemainMetric + ratioCommitPerDevMetric + numTimePullRequestGetMergedMetric + numOfReleaseMetric + numOfOpenPullRequestMetric;
             project.setHeathyScore(healthyScore);
         }
     }
@@ -267,6 +280,10 @@ public class HealthScoreCalculator {
         RatioCommitPerDev.calculateRatioCommitPerDev(healthScoreCalculator.getListOfJsonFiles(),
                 healthScoreCalculator.getProjects());
         MergedPullRequest.calculatePullRequestGetMerged(healthScoreCalculator.getListOfJsonFiles(),
+                healthScoreCalculator.getProjects());
+        NumberOfRelease.calCulateNumberOfRelease(healthScoreCalculator.getListOfJsonFiles(),
+                healthScoreCalculator.getProjects());
+        NumOpenPullRequest.calculateOpenPullRequest(healthScoreCalculator.getListOfJsonFiles(),
                 healthScoreCalculator.getProjects());
         healthScoreCalculator.calculateHealthyScore();
         try {

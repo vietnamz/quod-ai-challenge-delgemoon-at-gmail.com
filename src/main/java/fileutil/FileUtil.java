@@ -74,6 +74,10 @@ public class FileUtil {
             csvWriter.append(",");
             csvWriter.append("pull_request_get_merged");
             csvWriter.append(",");
+            csvWriter.append("num_release");
+            csvWriter.append(",");
+            csvWriter.append("num_open_pull_request");
+            csvWriter.append(",");
             csvWriter.append("ratio_commit_per_dev");
 
             csvWriter.append("\n");
@@ -110,6 +114,16 @@ public class FileUtil {
                 }
                 if (project.getAveragePullRequestGetMerged() != null) {
                     csvWriter.append(project.getAveragePullRequestGetMerged().toString()).append(",");
+                } else {
+                    csvWriter.append("N/A").append(",");
+                }
+                if (project.getNumOfReleases() != null) {
+                    csvWriter.append(project.getNumOfReleases().toString()).append(",");
+                } else {
+                    csvWriter.append("N/A").append(",");
+                }
+                if (project.getNumOfOpenPullRequest() != null) {
+                    csvWriter.append(project.getNumOfOpenPullRequest().toString()).append(",");
                 } else {
                     csvWriter.append("N/A").append(",");
                 }

@@ -14,6 +14,10 @@ public class Project {
 
     private Long averagePullRequestGetMerged = 0L;
 
+    private Integer numOfReleases = 0;
+
+    private Integer numOfOpenPullRequest = 0;
+
     public void setOrg(String org) {
         this.org = org;
     }
@@ -87,5 +91,21 @@ public class Project {
 
     public void setAveragePullRequestGetMerged(Long averagePullRequestGetMerged) {
         this.averagePullRequestGetMerged = averagePullRequestGetMerged;
+    }
+
+    public Integer getNumOfReleases() {
+        return numOfReleases;
+    }
+
+    public void setNumOfReleases(Integer numOfReleases) {
+        this.numOfReleases = numOfReleases;
+    }
+
+    public Integer getNumOfOpenPullRequest() {
+        return numOfOpenPullRequest;
+    }
+
+    public void setNumOfOpenPullRequest(Integer numOfOpenPullRequest) {
+        this.numOfOpenPullRequest = numOfOpenPullRequest;
     }
 }
