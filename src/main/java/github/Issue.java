@@ -47,8 +47,6 @@ public class Issue {
                 .parallelStream().map(s -> s.getValue().close - s.getValue().open).collect(Collectors.toList());
         Long result = total.parallelStream().reduce((s1, s2) -> s1 + s2).get();
         return (long) Math.ceil(result.doubleValue() / (double) size);
-
-
     }
 
 }

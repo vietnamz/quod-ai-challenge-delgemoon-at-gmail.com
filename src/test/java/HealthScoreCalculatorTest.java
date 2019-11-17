@@ -87,6 +87,12 @@ public class HealthScoreCalculatorTest {
                 healthScoreCalculator.getProjects());
         NumOpenPullRequest.calculateOpenPullRequest(healthScoreCalculator.getListOfJsonFiles(),
                 healthScoreCalculator.getProjects());
+        NumPeopleOpenNewIssue.calculatePeopeOpenNewIssue(healthScoreCalculator.getListOfJsonFiles(),
+                healthScoreCalculator.getProjects());
+        RatioClosedToOpenIssue.calculateRatioClosedToOpenIssue(healthScoreCalculator.getListOfJsonFiles(),
+                healthScoreCalculator.getProjects());
+        NumReviewPerPullRequest.calculateNumReviewPerPR(healthScoreCalculator.getListOfJsonFiles(),
+                healthScoreCalculator.getProjects());
         healthScoreCalculator.calculateHealthyScore();
         FileUtil.writeOutToCSV(healthScoreCalculator.getProjects(), "src/test/resources/health.csv");
     }

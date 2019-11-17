@@ -18,6 +18,12 @@ public class Project {
 
     private Integer numOfOpenPullRequest = 0;
 
+    private Integer numOfPeopleOpenNewIssue = 0;
+
+    private Float rationClosedToOpenIssue = 0F;
+
+    private Integer averageReviewPerPR = 0;
+
     public void setOrg(String org) {
         this.org = org;
     }
@@ -107,5 +113,29 @@ public class Project {
 
     public void setNumOfOpenPullRequest(Integer numOfOpenPullRequest) {
         this.numOfOpenPullRequest = numOfOpenPullRequest;
+    }
+
+    public void setNumOfPeopleOpenNewIssue(Integer numOfPeopleOpenNewIssue) {
+        this.numOfPeopleOpenNewIssue = numOfPeopleOpenNewIssue;
+    }
+
+    public Integer getNumOfPeopleOpenNewIssue() {
+        return numOfPeopleOpenNewIssue;
+    }
+
+    public void setRationClosedToOpenIssue(Float rationClosedToOpenIssue) {
+        this.rationClosedToOpenIssue = rationClosedToOpenIssue;
+    }
+
+    public Float getRationClosedToOpenIssue() {
+        return rationClosedToOpenIssue;
+    }
+
+    public Integer getAverageReviewPerPR() {
+        return averageReviewPerPR;
+    }
+
+    public void setAverageReviewPerPR(Integer averageReviewPerPR) {
+        this.averageReviewPerPR = averageReviewPerPR;
     }
 }

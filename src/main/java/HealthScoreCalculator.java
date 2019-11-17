@@ -222,36 +222,77 @@ public class HealthScoreCalculator {
                 .min(Comparator.comparing(Project::getNumOfOpenPullRequest)).get().getNumOfOpenPullRequest();
         Integer maxNumOfOpenPullRequest = this.getProjects().values().parallelStream()
                 .max(Comparator.comparing(Project::getNumOfOpenPullRequest)).get().getNumOfOpenPullRequest();
+        Integer minNumOfPeopleOpenIssue = this.getProjects().values().parallelStream()
+                .min(Comparator.comparing(Project::getNumOfPeopleOpenNewIssue)).get().getNumOfPeopleOpenNewIssue();
+        Integer maxNumOfPeopleOpenIssue = this.getProjects().values().parallelStream()
+                .max(Comparator.comparing(Project::getNumOfPeopleOpenNewIssue)).get().getNumOfPeopleOpenNewIssue();
+        Float minRatioClosedToOpenIssue = this.getProjects().values().parallelStream()
+                .min(Comparator.comparing(Project::getRationClosedToOpenIssue)).get().getRationClosedToOpenIssue();
+        Float maxRatioClosedToOpenIssue = this.getProjects().values().parallelStream()
+                .max(Comparator.comparing(Project::getRationClosedToOpenIssue)).get().getRationClosedToOpenIssue();
+        Integer minAvgNumReviewPerPR = this.getProjects().values().parallelStream()
+                .min(Comparator.comparing(Project::getAverageReviewPerPR)).get().getAverageReviewPerPR();
+        Integer maxAvgNumReviewPerPR = this.getProjects().values().parallelStream()
+                .max(Comparator.comparing(Project::getAverageReviewPerPR)).get().getAverageReviewPerPR();
         Iterator<Map.Entry<Long, Project>> entrySet = projects.entrySet().iterator();
         while (entrySet.hasNext()) {
             Map.Entry<Long, Project> entry = entrySet.next();
             Project project = entry.getValue();
             Float numOfCommitMetric = 0F;
             if (maxNumberOfcommit != 0) {
-                numOfCommitMetric = ((float) project.getNumCommit() - (float) minNumberOfcommit) / ((float) maxNumberOfcommit - (float) minNumberOfcommit);
+                numOfCommitMetric = ((float) project.getNumCommit() - (float) minNumberOfcommit) /
+                        ((float) maxNumberOfcommit - (float) minNumberOfcommit);
             }
             Float numTimeIssueRemainMetric = 0F;
             if (project.getAverageIssueOpen() != 0) {
-                numTimeIssueRemainMetric = (float) minTimeIssueRemainingOpen / (float) project.getAverageIssueOpen();
+                numTimeIssueRemainMetric = (float) minTimeIssueRemainingOpen /
+                        (float) project.getAverageIssueOpen();
             }
 
             Float ratioCommitPerDevMetric = 0F;
             if (maxRatioCommitPerDev != 0) {
-                ratioCommitPerDevMetric = ((float) project.getRatioCommitPerDev() - (float) minRatioCommitPerDev) / ((float) maxRatioCommitPerDev - (float) minRatioCommitPerDev);
+                ratioCommitPerDevMetric = ((float) project.getRatioCommitPerDev() - (float) minRatioCommitPerDev) /
+                        ((float) maxRatioCommitPerDev - (float) minRatioCommitPerDev);
             }
             Float numTimePullRequestGetMergedMetric = 0F;
             if (maxTimePullRequestGetMerged != 0) {
-                numTimePullRequestGetMergedMetric = ((float) project.getAveragePullRequestGetMerged() - (float) minTimePullRequestGetMerged) / ((float) maxTimePullRequestGetMerged - (float) minTimePullRequestGetMerged);
+                numTimePullRequestGetMergedMetric = ((float) project.getAveragePullRequestGetMerged() -
+                        (float) minTimePullRequestGetMerged) /
+                        ((float) maxTimePullRequestGetMerged - (float) minTimePullRequestGetMerged);
             }
             Float numOfReleaseMetric = 0F;
             if (maxNumOfRelease != 0) {
-                numOfReleaseMetric = ((float) project.getNumOfReleases() - (float) minNumOfRelease) / ((float) maxNumOfRelease - (float) minNumOfRelease);
+                numOfReleaseMetric = ((float) project.getNumOfReleases() - (float) minNumOfRelease) /
+                        ((float) maxNumOfRelease - (float) minNumOfRelease);
             }
             Float numOfOpenPullRequestMetric = 0F;
             if (maxNumOfOpenPullRequest != 0) {
-                numOfOpenPullRequestMetric = ((float) project.getNumOfOpenPullRequest() - (float) minNumOfOpenPullRequest) / ((float) maxNumOfOpenPullRequest - (float) minNumOfOpenPullRequest);
+                numOfOpenPullRequestMetric = ((float) project.getNumOfOpenPullRequest() - (float) minNumOfOpenPullRequest) /
+                        ((float) maxNumOfOpenPullRequest - (float) minNumOfOpenPullRequest);
             }
-            Float healthyScore = numOfCommitMetric + numTimeIssueRemainMetric + ratioCommitPerDevMetric + numTimePullRequestGetMergedMetric + numOfReleaseMetric + numOfOpenPullRequestMetric;
+            Float numOfPeopleOpenIssueMetric = 0F;
+            if (maxNumOfPeopleOpenIssue != 0) {
+                numOfPeopleOpenIssueMetric = ((float) project.getNumOfPeopleOpenNewIssue() - (float) minNumOfPeopleOpenIssue) /
+                        ((float) maxNumOfPeopleOpenIssue - (float) minNumOfPeopleOpenIssue);
+            }
+            Float ratioOfClosedToOpenIssueMetric = 0F;
+            if (maxRatioClosedToOpenIssue != 0) {
+                ratioOfClosedToOpenIssueMetric = (project.getRationClosedToOpenIssue() - minRatioClosedToOpenIssue) /
+                        (maxRatioClosedToOpenIssue - minRatioClosedToOpenIssue);
+            }
+            Integer numAvgReviewPerPRMetric = 0;
+            if (maxAvgNumReviewPerPR != 0) {
+                numAvgReviewPerPRMetric = (project.getAverageReviewPerPR() - minAvgNumReviewPerPR) /
+                        (maxAvgNumReviewPerPR - minAvgNumReviewPerPR);
+            }
+            Float healthyScore = numOfCommitMetric + numTimeIssueRemainMetric +
+                    ratioCommitPerDevMetric +
+                    numTimePullRequestGetMergedMetric +
+                    numOfReleaseMetric +
+                    numOfOpenPullRequestMetric +
+                    ratioOfClosedToOpenIssueMetric +
+                    numAvgReviewPerPRMetric +
+                    numOfPeopleOpenIssueMetric;
             project.setHeathyScore(healthyScore);
         }
     }
@@ -284,6 +325,12 @@ public class HealthScoreCalculator {
         NumberOfRelease.calCulateNumberOfRelease(healthScoreCalculator.getListOfJsonFiles(),
                 healthScoreCalculator.getProjects());
         NumOpenPullRequest.calculateOpenPullRequest(healthScoreCalculator.getListOfJsonFiles(),
+                healthScoreCalculator.getProjects());
+        NumPeopleOpenNewIssue.calculatePeopeOpenNewIssue(healthScoreCalculator.getListOfJsonFiles(),
+                healthScoreCalculator.getProjects());
+        RatioClosedToOpenIssue.calculateRatioClosedToOpenIssue(healthScoreCalculator.getListOfJsonFiles(),
+                healthScoreCalculator.getProjects());
+        NumReviewPerPullRequest.calculateNumReviewPerPR(healthScoreCalculator.getListOfJsonFiles(),
                 healthScoreCalculator.getProjects());
         healthScoreCalculator.calculateHealthyScore();
         try {

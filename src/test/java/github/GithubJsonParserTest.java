@@ -44,6 +44,7 @@ public class GithubJsonParserTest {
         Map<String, Object> issues = githubJsonParser
                 .readIssueRemainOpen("src/test/resources/test_individual_4.json", true).get();
         Assert.assertEquals(issues.get("id"), 18510170L);
+        Assert.assertEquals(issues.get("actor_id"), 3883059L);
         Assert.assertEquals(issues.get("created_at"), "2015-01-01T07:28:55Z");
         Assert.assertEquals(issues.get("closed_at"), "null");
         Assert.assertEquals(issues.get("action"), "opened");
@@ -72,5 +73,15 @@ public class GithubJsonParserTest {
         Assert.assertEquals(releases.get("id"), 28688179L);
         Assert.assertEquals(releases.get("action"), "published"); // collect action to filter. just care about published.
         Assert.assertEquals(releases.get("release_id"), 818679L);
+    }
+
+    @Test
+    public void githubJsonParser_readNumCommentPerPR_success() {
+        GithubJsonParser githubJsonParser = new GithubJsonParser();
+        Map<String, Object> pr = githubJsonParser
+                .readPullRequestReviewEvent("src/test/resources/test_individual_7.json", true).get();
+        Assert.assertEquals(pr.get("id"), 28668460L);
+        Assert.assertEquals(pr.get("comment_id"), 22400085L);
+        Assert.assertEquals(pr.get("pull_request_id"), 26743766L);
     }
 }
