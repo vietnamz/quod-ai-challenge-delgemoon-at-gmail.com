@@ -24,6 +24,8 @@ public class Project {
 
     private Integer averageReviewPerPR = 0;
 
+    private Float contributorGrowthRate = 0F;
+
     public void setOrg(String org) {
         this.org = org;
     }
@@ -137,5 +139,13 @@ public class Project {
 
     public void setAverageReviewPerPR(Integer averageReviewPerPR) {
         this.averageReviewPerPR = averageReviewPerPR;
+    }
+
+    public Float getContributorGrowthRate() {
+        return contributorGrowthRate;
+    }
+
+    public void setContributorGrowthRate(Float contributorGrowthRate) {
+        this.contributorGrowthRate = contributorGrowthRate;
     }
 }

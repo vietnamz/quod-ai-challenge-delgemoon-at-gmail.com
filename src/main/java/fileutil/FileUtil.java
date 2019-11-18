@@ -84,6 +84,8 @@ public class FileUtil {
             csvWriter.append(",");
             csvWriter.append("avg_review_per_pr");
             csvWriter.append(",");
+            csvWriter.append("avg_contributor_growth_rate");
+            csvWriter.append(",");
             csvWriter.append("ratio_commit_per_dev");
 
             csvWriter.append("\n");
@@ -145,6 +147,11 @@ public class FileUtil {
                 }
                 if (project.getAverageReviewPerPR() != null) {
                     csvWriter.append(project.getAverageReviewPerPR().toString()).append(",");
+                } else {
+                    csvWriter.append("N/A").append(",");
+                }
+                if (project.getContributorGrowthRate() != null) {
+                    csvWriter.append(project.getContributorGrowthRate().toString()).append(",");
                 } else {
                     csvWriter.append("N/A").append(",");
                 }

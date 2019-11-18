@@ -26,6 +26,8 @@ public class HealthScoreCalculator {
     private List<String> anHoursFiles = new ArrayList<>();
     private List<String> listOfJsonFiles = new ArrayList<>();
     private Map<Long, Project> projects = new HashMap<>();
+    private LocalDateTime localDateTimeStart = null;
+    private LocalDateTime localDateTimeEnd = null;
 
 
     /**
@@ -66,6 +68,8 @@ public class HealthScoreCalculator {
 
         LocalDateTime startDateTime = convertStartDateTime.get();
         LocalDateTime endDateTime = convertEndDateTime.get();
+        this.localDateTimeEnd = endDateTime;
+        this.localDateTimeStart = startDateTime;
 
         if (startDateTime.isAfter(endDateTime)) {
             throw new IllegalArgumentException(
@@ -110,6 +114,14 @@ public class HealthScoreCalculator {
 
     public Map<Long, Project> getProjects() {
         return projects;
+    }
+
+    public LocalDateTime getLocalDateTimeEnd() {
+        return localDateTimeEnd;
+    }
+
+    public LocalDateTime getLocalDateTimeStart() {
+        return localDateTimeStart;
     }
 
     public void deleteDirectoryRecursion(File file) throws IOException {
@@ -234,6 +246,11 @@ public class HealthScoreCalculator {
                 .min(Comparator.comparing(Project::getAverageReviewPerPR)).get().getAverageReviewPerPR();
         Integer maxAvgNumReviewPerPR = this.getProjects().values().parallelStream()
                 .max(Comparator.comparing(Project::getAverageReviewPerPR)).get().getAverageReviewPerPR();
+        Float minAvgContributorGrowthRate = this.getProjects().values().parallelStream()
+                .min(Comparator.comparing(Project::getContributorGrowthRate)).get().getContributorGrowthRate();
+        Float maxAvgContributorGrowthRate = this.getProjects().values().parallelStream()
+                .max(Comparator.comparing(Project::getContributorGrowthRate)).get().getContributorGrowthRate();
+        LOGGER.info("maxAvgContributorGrowthRate {}", maxAvgContributorGrowthRate);
         Iterator<Map.Entry<Long, Project>> entrySet = projects.entrySet().iterator();
         while (entrySet.hasNext()) {
             Map.Entry<Long, Project> entry = entrySet.next();
@@ -285,6 +302,11 @@ public class HealthScoreCalculator {
                 numAvgReviewPerPRMetric = (project.getAverageReviewPerPR() - minAvgNumReviewPerPR) /
                         (maxAvgNumReviewPerPR - minAvgNumReviewPerPR);
             }
+            Float numAvgContributorGrowthRateMetric = 0F;
+            if (maxAvgContributorGrowthRate != 0) {
+                numAvgContributorGrowthRateMetric = (project.getContributorGrowthRate() - maxAvgContributorGrowthRate) /
+                        (maxAvgContributorGrowthRate - minAvgContributorGrowthRate);
+            }
             Float healthyScore = numOfCommitMetric + numTimeIssueRemainMetric +
                     ratioCommitPerDevMetric +
                     numTimePullRequestGetMergedMetric +
@@ -292,6 +314,7 @@ public class HealthScoreCalculator {
                     numOfOpenPullRequestMetric +
                     ratioOfClosedToOpenIssueMetric +
                     numAvgReviewPerPRMetric +
+                    numAvgContributorGrowthRateMetric +
                     numOfPeopleOpenIssueMetric;
             project.setHeathyScore(healthyScore);
         }
@@ -332,6 +355,9 @@ public class HealthScoreCalculator {
                 healthScoreCalculator.getProjects());
         NumReviewPerPullRequest.calculateNumReviewPerPR(healthScoreCalculator.getListOfJsonFiles(),
                 healthScoreCalculator.getProjects());
+        ContributorGrowthOverTime.calculatePullRequestGetMerged(healthScoreCalculator.getListOfJsonFiles(),
+                healthScoreCalculator.getProjects(), healthScoreCalculator.getLocalDateTimeStart(),
+                healthScoreCalculator.getLocalDateTimeEnd());
         healthScoreCalculator.calculateHealthyScore();
         try {
             healthScoreCalculator.deleteDirectoryRecursion(new File("src/main/resources/githubdata"));

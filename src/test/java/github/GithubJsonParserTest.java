@@ -63,6 +63,7 @@ public class GithubJsonParserTest {
         Assert.assertEquals(pullRequest.get("merged"), false);
         Assert.assertEquals(pullRequest.get("pull_request_id"), 10047845L);
         Assert.assertEquals(pullRequest.get("state"), "closed");
+        Assert.assertEquals(pullRequest.get("user_id"), 1144478L);
     }
 
     @Test

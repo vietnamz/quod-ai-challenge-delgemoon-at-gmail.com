@@ -93,6 +93,9 @@ public class HealthScoreCalculatorTest {
                 healthScoreCalculator.getProjects());
         NumReviewPerPullRequest.calculateNumReviewPerPR(healthScoreCalculator.getListOfJsonFiles(),
                 healthScoreCalculator.getProjects());
+        ContributorGrowthOverTime.calculatePullRequestGetMerged(healthScoreCalculator.getListOfJsonFiles(),
+                healthScoreCalculator.getProjects(), healthScoreCalculator.getLocalDateTimeStart(),
+                healthScoreCalculator.getLocalDateTimeEnd());
         healthScoreCalculator.calculateHealthyScore();
         FileUtil.writeOutToCSV(healthScoreCalculator.getProjects(), "src/test/resources/health.csv");
     }
