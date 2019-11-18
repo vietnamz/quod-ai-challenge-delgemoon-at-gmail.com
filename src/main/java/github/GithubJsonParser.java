@@ -29,6 +29,62 @@ public class GithubJsonParser {
 
     }
 
+    private int readPullRequestUser(JsonParser jsonParser, Map<String, Object> aMap) {
+        try {
+            while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
+                String property = jsonParser.getText();
+                switch (property) {
+                    case "id":
+                        jsonParser.nextValue();
+                        Long id = jsonParser.getLongValue();
+                        aMap.put("user_id", id);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        } catch (Exception e) {
+            return -1;
+        }
+        return 0;
+    }
+
+    private int readPullRequestComment(JsonParser jsonParser, Map<String, Object> aMap) {
+        try {
+            while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
+                String property = jsonParser.getText();
+                switch (property) {
+                    case "id":
+                        jsonParser.nextValue();
+                        Long id = jsonParser.getLongValue();
+                        aMap.put("comment_id", id);
+                        return 0; // well bad.
+                }
+            }
+            return -1;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    private int readReleaseSegment(JsonParser jsonParser, Map<String, Object> aMap) {
+        try {
+            while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
+                String property = jsonParser.getText();
+                switch (property) {
+                    case "id":
+                        jsonParser.nextValue();
+                        Long id = jsonParser.getLongValue();
+                        aMap.put("release_id", id);
+                        return 0; // well bad.
+                }
+            }
+            return -1;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
     private int readRepo(JsonParser jsonParser, Map<String, Object> aMap) {
         try {
             while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
@@ -78,6 +134,8 @@ public class GithubJsonParser {
             boolean readFullRequestId = false;
             boolean readCreatedAt = false;
             boolean readMergedAt = false;
+            boolean readUpdatedAt = false;
+            boolean readUserAlready = false;
             while (jsonParser.nextToken() != null) {
                 String property = jsonParser.getText();
                 switch (property) {
@@ -95,6 +153,27 @@ public class GithubJsonParser {
                         boolean merged = jsonParser.getBooleanValue();
                         aMap.put("merged", merged);
                         return 0;
+                    case "user":
+                        if (readUserAlready) {
+                            break;
+                        }
+                        readPullRequestUser(jsonParser, aMap);
+                        readUserAlready = true;
+                        break;
+                    case "state":
+                        jsonParser.nextValue();
+                        String state = jsonParser.getText();
+                        aMap.put("state", state);
+                        break;
+                    case "updated_at":
+                        if (readUpdatedAt) {
+                            break;
+                        }
+                        jsonParser.nextValue();
+                        String updateAt = jsonParser.getText();
+                        aMap.put("updated_at", updateAt);
+                        readUpdatedAt = true;
+                        break;
                     case "created_at":
                         if (readCreatedAt) {
                             break;
@@ -113,13 +192,30 @@ public class GithubJsonParser {
                         aMap.put("merged_at", mergedAt);
                         readMergedAt = true;
                         break;
-
                 }
             }
             return 0;
         } catch (Exception e) {
             return -1; // will handle later or we might have to refactor this logic
         }
+    }
+
+    private int readIssueUser(JsonParser jsonParser, Map<String, Object> aMap) {
+        try {
+            while (jsonParser.nextToken() != null) {
+                String property = jsonParser.getText();
+                switch (property) {
+                    case "id":
+                        jsonParser.nextValue();
+                        Long id = jsonParser.getLongValue();
+                        aMap.put("user_id", id);
+                        return 0;
+                }
+            }
+        } catch (Exception e) {
+            return -1;
+        }
+        return -1;
     }
 
     private int readIssuePayload(JsonParser jsonParser, Map<String, Object> aMap) {
@@ -141,6 +237,11 @@ public class GithubJsonParser {
                         jsonParser.nextValue();
                         String action = jsonParser.getText();
                         aMap.put("action", action);
+                        break;
+                    case "updated_at":
+                        jsonParser.nextValue();
+                        String updatedAt = jsonParser.getText();
+                        aMap.put("updated_at", updatedAt);
                         break;
                     case "created_at":
                         jsonParser.nextToken();
@@ -295,6 +396,13 @@ public class GithubJsonParser {
         return Optional.of(aMap);
     }
 
+    /**
+     * Read issue remain open optional.
+     *
+     * @param content the content
+     * @param isFile  the is file
+     * @return the optional
+     */
     public Optional<Map<String, Object>> readIssueRemainOpen(String content, boolean isFile) {
         Map<String, Object> aMap = new HashMap<>();
         JsonParser jsonParser = null;
@@ -321,6 +429,7 @@ public class GithubJsonParser {
                         }
                         break;
                     case "actor":
+                        readActor(jsonParser, aMap);
                         break;
                     case "repo":
                         readRepo(jsonParser, aMap);
@@ -355,6 +464,13 @@ public class GithubJsonParser {
 
     }
 
+    /**
+     * Read merged pull request optional.
+     *
+     * @param content the content
+     * @param isFile  the is file
+     * @return the optional
+     */
     public Optional<Map<String, Object>> readMergedPullRequest(String content, boolean isFile) {
         Map<String, Object> aMap = new HashMap<>();
         JsonParser jsonParser = null;
@@ -407,4 +523,235 @@ public class GithubJsonParser {
         }
         return Optional.of(aMap);
     }
+
+    /**
+     * Read number of release optional.
+     *
+     * @param content the content
+     * @param isFile  the is file
+     * @return the optional
+     */
+    public Optional<Map<String, Object>> readNumberOfRelease(String content, boolean isFile) {
+        Map<String, Object> aMap = new HashMap<>();
+        JsonParser jsonParser = null;
+        try {
+            if (isFile) {
+                jsonParser = jsonFactory.createParser(new FileInputStream(content));
+            } else {
+                jsonParser = jsonFactory.createParser(content);
+            }
+            boolean stop = false;
+            while (jsonParser.nextToken() != null) {
+                String property = jsonParser.getText();
+                if (property == null) {
+                    continue;
+                }
+                switch (property) {
+                    case "id":
+                        break;
+                    case "type":
+                        jsonParser.nextValue();
+                        String type = jsonParser.getText();
+                        if (!type.equals("ReleaseEvent")) {
+                            throw new IllegalArgumentException("Just throw something to close stream");
+                        }
+                        break;
+                    case "action":
+                        jsonParser.nextValue();
+                        String action = jsonParser.getText();
+                        // self review: should I filter the action type here or later. just move with this.
+                        // we can improve later.
+                        aMap.put("action", action);
+                        break;
+                    case "release":
+                        readReleaseSegment(jsonParser, aMap);
+                        stop = true;
+                        break;
+                    case "repo":
+                        readRepo(jsonParser, aMap);
+                        break;
+                    default:
+                        break;
+                }
+                if (stop) {
+                    break;
+                }
+            }
+            jsonParser.close();
+        } catch (Exception e) {
+            try {
+                if (jsonParser != null) {
+                    jsonParser.close();
+                }
+                return Optional.empty();
+            } catch (Exception ex) {
+                return Optional.empty();
+            }
+        }
+        return Optional.of(aMap);
+    }
+
+    /**
+     * Read pull request review event optional.
+     *
+     * @param content the content
+     * @param isFile  the is file
+     * @return the optional
+     */
+    public Optional<Map<String, Object>> readPullRequestReviewEvent(String content, boolean isFile) {
+        Map<String, Object> aMap = new HashMap<>();
+        JsonParser jsonParser = null;
+        try {
+            if (isFile) {
+                jsonParser = jsonFactory.createParser(new FileInputStream(content));
+            } else {
+                jsonParser = jsonFactory.createParser(content);
+            }
+            boolean stop = false;
+            boolean readTypeAlready = false;
+            while (jsonParser.nextToken() != null) {
+                String property = jsonParser.getText();
+                if (property == null) {
+                    continue;
+                }
+                switch (property) {
+                    case "id":
+                        break;
+                    case "type":
+                        if (readTypeAlready) {
+                            break;
+                        }
+                        jsonParser.nextValue();
+                        String type = jsonParser.getText();
+                        if (!type.equals("PullRequestReviewCommentEvent")) {
+                            throw new IllegalArgumentException("Just throw something to close stream");
+                        }
+                        readTypeAlready = true;
+                        break;
+                    case "comment":
+                        readPullRequestComment(jsonParser, aMap);
+                        break;
+                    case "pull_request":
+                        readPullRequest(jsonParser, aMap);
+                        stop = true;
+                        break;
+                    case "repo":
+                        readRepo(jsonParser, aMap);
+                        break;
+                    default:
+                        break;
+                }
+                if (stop) {
+                    break;
+                }
+            }
+            jsonParser.close();
+        } catch (Exception e) {
+            try {
+                if (jsonParser != null) {
+                    jsonParser.close();
+                }
+                return Optional.empty();
+            } catch (Exception ex) {
+                return Optional.empty();
+            }
+        }
+        return Optional.of(aMap);
+
+    }
+
+    //IssueCommentEvent
+
+    private int readIssueComment(JsonParser jsonParser, Map<String, Object> aMap) {
+        try {
+            boolean readCommentIdAlready = false;
+            while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
+                String property = jsonParser.getText();
+                switch (property) {
+                    case "id":
+                        if (readCommentIdAlready) {
+                            break;
+                        }
+                        jsonParser.nextValue();
+                        Long id = jsonParser.getLongValue();
+                        aMap.put("comment_id", id);
+                        readCommentIdAlready = true;
+                        break;
+                    case "created_at":
+                        jsonParser.nextValue();
+                        String createdAt = jsonParser.getText();
+                        aMap.put("comment_created_at", createdAt);
+                        break;
+                    default:
+                        break;
+                }
+            }
+            return 0;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    /**
+     * Issue comment event optional.
+     *
+     * @param content the content
+     * @param isFile  the is file
+     * @return the optional
+     */
+    public Optional<Map<String, Object>> IssueCommentEvent(String content, boolean isFile) {
+        Map<String, Object> aMap = new HashMap<>();
+        JsonParser jsonParser = null;
+        try {
+            if (isFile) {
+                jsonParser = jsonFactory.createParser(new FileInputStream(content));
+            } else {
+                jsonParser = jsonFactory.createParser(content);
+            }
+            boolean stop = false;
+            while (jsonParser.nextToken() != null) {
+                String property = jsonParser.getText();
+                if (property == null) {
+                    continue;
+                }
+                switch (property) {
+                    case "type":
+                        jsonParser.nextValue();
+                        String type = jsonParser.getText();
+                        if (!type.equals("IssueCommentEvent")) {
+                            throw new IllegalArgumentException("Just throw something to close stream");
+                        }
+                        aMap.put("type", type);
+                        break;
+                    case "repo":
+                        readRepo(jsonParser, aMap);
+                        break;
+                    case "issue":
+                        readIssuePayload(jsonParser, aMap);
+                        break;
+                    case "comment":
+                        readIssueComment(jsonParser, aMap);
+                        break;
+                    default:
+                        break;
+                }
+                if (stop) {
+                    break;
+                }
+            }
+            jsonParser.close();
+        } catch (Exception e) {
+            try {
+                if (jsonParser != null) {
+                    jsonParser.close();
+                }
+                return Optional.empty();
+            } catch (Exception ex) {
+                return Optional.empty();
+            }
+        }
+        return Optional.of(aMap);
+
+    }
+
 }

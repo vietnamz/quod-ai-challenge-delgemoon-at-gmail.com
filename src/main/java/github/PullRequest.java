@@ -45,6 +45,5 @@ public class PullRequest {
         Long result = total.parallelStream().reduce((s1, s2) -> s1 + s2).get();
         return (long) Math.ceil((double) result.doubleValue() / (double) size);
 
-
     }
 }

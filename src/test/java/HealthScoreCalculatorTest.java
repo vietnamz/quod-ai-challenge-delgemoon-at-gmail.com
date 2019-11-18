@@ -1,9 +1,6 @@
 import fileutil.FileUtil;
 import github.Project;
-import metrics.MergedPullRequest;
-import metrics.NumOfCommitPerDays;
-import metrics.RatioCommitPerDev;
-import metrics.TimeIssueRemainOpen;
+import metrics.*;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
@@ -29,6 +26,7 @@ public class HealthScoreCalculatorTest {
             throw new IOException("Failed to delete " + file);
         }
     }
+
 
     @After
     public void tearDown() {
@@ -85,6 +83,19 @@ public class HealthScoreCalculatorTest {
                 healthScoreCalculator.getProjects());
         MergedPullRequest.calculatePullRequestGetMerged(healthScoreCalculator.getListOfJsonFiles(),
                 healthScoreCalculator.getProjects());
+        NumberOfRelease.calCulateNumberOfRelease(healthScoreCalculator.getListOfJsonFiles(),
+                healthScoreCalculator.getProjects());
+        NumOpenPullRequest.calculateOpenPullRequest(healthScoreCalculator.getListOfJsonFiles(),
+                healthScoreCalculator.getProjects());
+        NumPeopleOpenNewIssue.calculatePeopeOpenNewIssue(healthScoreCalculator.getListOfJsonFiles(),
+                healthScoreCalculator.getProjects());
+        RatioClosedToOpenIssue.calculateRatioClosedToOpenIssue(healthScoreCalculator.getListOfJsonFiles(),
+                healthScoreCalculator.getProjects());
+        NumReviewPerPullRequest.calculateNumReviewPerPR(healthScoreCalculator.getListOfJsonFiles(),
+                healthScoreCalculator.getProjects());
+        ContributorGrowthOverTime.calculatePullRequestGetMerged(healthScoreCalculator.getListOfJsonFiles(),
+                healthScoreCalculator.getProjects(), healthScoreCalculator.getLocalDateTimeStart(),
+                healthScoreCalculator.getLocalDateTimeEnd());
         healthScoreCalculator.calculateHealthyScore();
         FileUtil.writeOutToCSV(healthScoreCalculator.getProjects(), "src/test/resources/health.csv");
     }

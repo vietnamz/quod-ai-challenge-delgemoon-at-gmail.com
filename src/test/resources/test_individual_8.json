@@ -1,0 +1,95 @@
+{
+  "id": "2489651489",
+  "type": "IssueCommentEvent",
+  "actor": {
+    "id": 31021,
+    "login": "grawity",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/grawity",
+    "avatar_url": "https://avatars.githubusercontent.com/u/31021?"
+  },
+  "repo": {
+    "id": 4342947,
+    "name": "atheme/charybdis",
+    "url": "https://api.github.com/repos/atheme/charybdis"
+  },
+  "payload": {
+    "action": "created",
+    "issue": {
+      "url": "https://api.github.com/repos/atheme/charybdis/issues/76",
+      "labels_url": "https://api.github.com/repos/atheme/charybdis/issues/76/labels{/name}",
+      "comments_url": "https://api.github.com/repos/atheme/charybdis/issues/76/comments",
+      "events_url": "https://api.github.com/repos/atheme/charybdis/issues/76/events",
+      "html_url": "https://github.com/atheme/charybdis/issues/76",
+      "id": 53218762,
+      "number": 76,
+      "title": "./configure working directory can't be determined",
+      "user": {
+        "login": "xnite",
+        "id": 5316187,
+        "avatar_url": "https://avatars.githubusercontent.com/u/5316187?v=3",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/xnite",
+        "html_url": "https://github.com/xnite",
+        "followers_url": "https://api.github.com/users/xnite/followers",
+        "following_url": "https://api.github.com/users/xnite/following{/other_user}",
+        "gists_url": "https://api.github.com/users/xnite/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/xnite/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/xnite/subscriptions",
+        "organizations_url": "https://api.github.com/users/xnite/orgs",
+        "repos_url": "https://api.github.com/users/xnite/repos",
+        "events_url": "https://api.github.com/users/xnite/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/xnite/received_events",
+        "type": "User",
+        "site_admin": false
+      },
+      "labels": [],
+      "state": "open",
+      "locked": false,
+      "assignee": null,
+      "milestone": null,
+      "comments": 2,
+      "created_at": "2015-01-01T12:25:41Z",
+      "updated_at": "2015-01-01T15:00:50Z",
+      "closed_at": null,
+      "body": "Getting this error on ./configure, I've never seen this before, and I'm not sure what to do. The machine is running latest Debian, same configuration as any other machine we have added to our network, so I'm not sure what might have changed to cause this on this machine in comparison with any other machine.\r\n\r\n$ ./configure\r\nconfigure: error: working directory cannot be determined"
+    },
+    "comment": {
+      "url": "https://api.github.com/repos/atheme/charybdis/issues/comments/68488508",
+      "html_url": "https://github.com/atheme/charybdis/issues/76#issuecomment-68488508",
+      "issue_url": "https://api.github.com/repos/atheme/charybdis/issues/76",
+      "id": 68488508,
+      "user": {
+        "login": "grawity",
+        "id": 31021,
+        "avatar_url": "https://avatars.githubusercontent.com/u/31021?v=3",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/grawity",
+        "html_url": "https://github.com/grawity",
+        "followers_url": "https://api.github.com/users/grawity/followers",
+        "following_url": "https://api.github.com/users/grawity/following{/other_user}",
+        "gists_url": "https://api.github.com/users/grawity/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/grawity/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/grawity/subscriptions",
+        "organizations_url": "https://api.github.com/users/grawity/orgs",
+        "repos_url": "https://api.github.com/users/grawity/repos",
+        "events_url": "https://api.github.com/users/grawity/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/grawity/received_events",
+        "type": "User",
+        "site_admin": false
+      },
+      "created_at": "2015-01-01T15:00:50Z",
+      "updated_at": "2015-01-01T15:00:50Z",
+      "body": "Make sure `pwd`, `cd \"$(pwd)\"`, `ls -di .` report correct results."
+    }
+  },
+  "public": true,
+  "created_at": "2015-01-01T15:00:51Z",
+  "org": {
+    "id": 941247,
+    "login": "atheme",
+    "gravatar_id": "",
+    "url": "https://api.github.com/orgs/atheme",
+    "avatar_url": "https://avatars.githubusercontent.com/u/941247?"
+  }
+}
