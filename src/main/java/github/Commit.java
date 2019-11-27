@@ -10,8 +10,8 @@ import java.util.Map;
  */
 public class Commit {
 
-    private Long id = null;
     private Map<Long, Integer> commitPerDays = new HashMap<>();
+    private Map<Long, Integer> commitCreators = new HashMap<>();
 
     /**
      * Incr commit for day.
@@ -31,14 +31,6 @@ public class Commit {
         }
     }
 
-    /**
-     * Instantiates a new Commit.
-     *
-     * @param id the id
-     */
-    public Commit(Long id) {
-        this.id = id;
-    }
 
     /**
      * Instantiates a new Commit.
@@ -64,5 +56,37 @@ public class Commit {
         int size = commitPerDays.size();
         Integer result = commitPerDays.values().parallelStream().reduce((a, b) -> a + b).get();
         return (int) Math.ceil((double) result / (double) size);
+    }
+
+
+    /**
+     * Add creator.
+     *
+     * @param devId the dev id
+     */
+    public void addCreator(Long devId) {
+        if (commitCreators.containsKey(devId)) {
+            Integer count = commitCreators.get(devId);
+            commitCreators.replace(devId, ++count);
+        } else {
+            commitCreators.put(devId, 1);
+        }
+    }
+
+    /**
+     * Calculate ratio commit per dev int.
+     *
+     * @return the int
+     */
+    public int calculateRatioCommitPerDev() {
+        if (commitCreators.size() == 0) {
+            return 0;
+        }
+
+        int size = commitCreators.size();
+
+        int total = commitCreators.values().parallelStream().reduce((first, second) -> first + second).get();
+
+        return (int) Math.ceil((float) total / (float) size);
     }
 }

@@ -220,4 +220,41 @@ public class FileUtil {
             return Optional.empty();
         }
     }
+
+    /*
+    //"src/test/resources/properties"
+    private static void readExpectedProperties(String fileName, Map<String, Object> properties) {
+        List<String> strings = getLines(fileName).get().collect(Collectors.toList());
+        String type = null;
+        for (int iter = 0; iter < strings.size(); ++iter) {
+            if (iter == 0) {
+                Map<String, Object> innerMap = new HashMap<>();
+                type = strings.get(iter);
+                properties.put(strings.get(iter), innerMap);
+            } else {
+                if (strings.get(iter).contains(".")) {
+
+                } else {
+                    Map<String, Object> innerMap = (Map<String, Object>) properties.get(type);
+                    innerMap.put()
+
+                }
+            }
+        }
+
+    }
+
+    public static Optional<Map<String, Object>> readExpectedProperties(String folder) {
+        Map<String, Object> properties = new HashMap<>();
+        try {
+            List<String> fileNames = Files.walk(Paths.get("src/test/resources/properties"))
+                    .filter(filePath -> Files.isRegularFile(filePath))
+                    .map(s -> s.toString()).collect(Collectors.toList());
+            readExpectedProperties(s, properties);
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+        return Optional.of(properties);
+    }
+    */
 }

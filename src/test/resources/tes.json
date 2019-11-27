@@ -1,0 +1,117 @@
+{
+  "id": "2489651233",
+  "type": "IssuesEvent",
+  "actor": {
+    "id": 6339799,
+    "login": "izuzero",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/izuzero",
+    "avatar_url": "https://avatars.githubusercontent.com/u/6339799?"
+  },
+  "repo": {
+    "id": 28270952,
+    "name": "izuzero/xe-module-ajaxboard",
+    "url": "https://api.github.com/repos/izuzero/xe-module-ajaxboard"
+  },
+  "payload": {
+    "action": "closed",
+    "issue": {
+      "url": "https://api.github.com/repos/izuzero/xe-module-ajaxboard/issues/20",
+      "labels_url": "https://api.github.com/repos/izuzero/xe-module-ajaxboard/issues/20/labels{/name}",
+      "comments_url": "https://api.github.com/repos/izuzero/xe-module-ajaxboard/issues/20/comments",
+      "events_url": "https://api.github.com/repos/izuzero/xe-module-ajaxboard/issues/20/events",
+      "html_url": "https://github.com/izuzero/xe-module-ajaxboard/issues/20",
+      "id": 53221232,
+      "number": 20,
+      "title": "게시글 및 댓글 삭제 시 새로고침이 되는 문제",
+      "user": {
+        "login": "izuzero",
+        "id": 6339799,
+        "avatar_url": "https://avatars.githubusercontent.com/u/6339799?v=3",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/izuzero",
+        "html_url": "https://github.com/izuzero",
+        "followers_url": "https://api.github.com/users/izuzero/followers",
+        "following_url": "https://api.github.com/users/izuzero/following{/other_user}",
+        "gists_url": "https://api.github.com/users/izuzero/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/izuzero/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/izuzero/subscriptions",
+        "organizations_url": "https://api.github.com/users/izuzero/orgs",
+        "repos_url": "https://api.github.com/users/izuzero/repos",
+        "events_url": "https://api.github.com/users/izuzero/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/izuzero/received_events",
+        "type": "User",
+        "site_admin": false
+      },
+      "labels": [
+        {
+          "url": "https://api.github.com/repos/izuzero/xe-module-ajaxboard/labels/type%2Fbug",
+          "name": "type/bug",
+          "color": "eb6420"
+        }
+      ],
+      "state": "closed",
+      "locked": false,
+      "assignee": {
+        "login": "izuzero",
+        "id": 6339799,
+        "avatar_url": "https://avatars.githubusercontent.com/u/6339799?v=3",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/izuzero",
+        "html_url": "https://github.com/izuzero",
+        "followers_url": "https://api.github.com/users/izuzero/followers",
+        "following_url": "https://api.github.com/users/izuzero/following{/other_user}",
+        "gists_url": "https://api.github.com/users/izuzero/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/izuzero/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/izuzero/subscriptions",
+        "organizations_url": "https://api.github.com/users/izuzero/orgs",
+        "repos_url": "https://api.github.com/users/izuzero/repos",
+        "events_url": "https://api.github.com/users/izuzero/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/izuzero/received_events",
+        "type": "User",
+        "site_admin": false
+      },
+      "milestone": {
+        "url": "https://api.github.com/repos/izuzero/xe-module-ajaxboard/milestones/3",
+        "labels_url": "https://api.github.com/repos/izuzero/xe-module-ajaxboard/milestones/3/labels",
+        "id": 917346,
+        "number": 3,
+        "title": "2.1.1",
+        "description": "",
+        "creator": {
+          "login": "izuzero",
+          "id": 6339799,
+          "avatar_url": "https://avatars.githubusercontent.com/u/6339799?v=3",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/izuzero",
+          "html_url": "https://github.com/izuzero",
+          "followers_url": "https://api.github.com/users/izuzero/followers",
+          "following_url": "https://api.github.com/users/izuzero/following{/other_user}",
+          "gists_url": "https://api.github.com/users/izuzero/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/izuzero/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/izuzero/subscriptions",
+          "organizations_url": "https://api.github.com/users/izuzero/orgs",
+          "repos_url": "https://api.github.com/users/izuzero/repos",
+          "events_url": "https://api.github.com/users/izuzero/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/izuzero/received_events",
+          "type": "User",
+          "site_admin": false
+        },
+        "open_issues": 0,
+        "closed_issues": 10,
+        "state": "open",
+        "created_at": "2014-12-30T04:09:29Z",
+        "updated_at": "2015-01-01T15:00:18Z",
+        "due_on": null,
+        "closed_at": null
+      },
+      "comments": 2,
+      "created_at": "2015-01-01T14:54:49Z",
+      "updated_at": "2015-01-01T15:00:18Z",
+      "closed_at": "2015-01-01T15:00:18Z",
+      "body": "기본 게시판 대응 플러그인 #19"
+    }
+  },
+  "public": true,
+  "created_at": "2015-01-01T15:00:18Z"
+}

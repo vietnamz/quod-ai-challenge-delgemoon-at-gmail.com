@@ -1,106 +1,104 @@
 package metrics;
 
-import fileutil.FileUtil;
-import github.GithubJsonParser;
 import github.Issue;
 import github.Project;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import timeutil.TimeUtil;
 
-import java.util.*;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * The type Time issue remain open.
  */
-public class TimeIssueRemainOpen {
+public class TimeIssueRemainOpen extends BaseMetric {
     private static final Logger LOGGER = LoggerFactory.getLogger(TimeIssueRemainOpen.class);
+    /**
+     * The Issues.
+     */
+    ConcurrentMap<Long, Issue> issues = new ConcurrentHashMap<>();
+    private String defaultCloseAt = null;
 
     /**
-     * Calculate time issue remain open optional.
-     * <p>
-     * I suppose the issue will be open then close only.
-     * <p>
-     * That means, We opened an issue then it close. We don't consider case it might be re-open.
-     * <p>
-     * Open --> close. For some specical case like reopen the calculation might be incorrect.
+     * Instantiates a new Time issue remain open.
      *
-     * @param files    the files
-     * @param projects the projects
-     * @return the optional
+     * @param properties the properties
+     * @param projects   the projects
+     * @param end        the end
      */
-    public static Optional<Integer> calculateTimeIssueRemainOpen(List<String> files,
-                                                                 Map<Long, Project> projects,
-                                                                 String defaultCloseAt) {
-        Map<Long, Issue> issues = new HashMap<>();
-        try {
-            files.stream().map(f -> FileUtil.getLines(f))
-                    .peek(o -> {
-                        if (!o.isPresent()) {
-                            LOGGER.error("Problem with opening file");
-                        }
-                    })
-                    .filter(o -> o.isPresent())
-                    .flatMap(o -> o.get())
-                    .map(s -> {
-                        return new GithubJsonParser().readIssueRemainOpen(s, false);
-                    })
-                    .peek(o -> {
-                        if (!o.isPresent()) {
-                            if (LOGGER.isWarnEnabled()) {
-                                //LOGGER.warn("Problem with reading json file or the entry is not push event");
-                            }
-                        }
-                    })
-                    .filter(o -> o.isPresent())
-                    .map(o -> o.get())
-                    .filter(s -> s.get("action") != null && (s.get("action").equals("closed") || s.get("action").equals("opened")))
-                    .forEach(s -> {
-                        Long id = (Long) s.get("id");
-                        String createdAt = (String) s.get("created_at");
-                        String closedAt = (String) s.get("closed_at");
-                        Long issueId = (Long) s.get("issue_id");
-                        // In case the issue is open state, We haven't had the close yet. Just fill the end time.
-                        if (closedAt.equals("null")) {
-                            closedAt = defaultCloseAt;
-                        }
-                        // REVIEW: Do we really need to make this to second.
-                        // The value seem to be big. and not reliable. But I have to go with this approach first.
-                        Long openTimeEpoch = TimeUtil.convertStringToEpochSecond(createdAt).get();
-                        Long closeTimeEpoch = TimeUtil.convertStringToEpochSecond(closedAt).get();
-                        if (issues.containsKey(id)) {
-                            Issue issue = issues.get(id);
-                            issue.addNewIssue(issueId, openTimeEpoch, closeTimeEpoch);
-                            issues.replace(id, issue);
-                        } else {
-                            Issue issue = new Issue();
-                            issue.addNewIssue(issueId, openTimeEpoch, closeTimeEpoch);
-                            issues.put(id, issue);
-                        }
-
-                    });
-
-            Map.Entry<Long, Issue> maxValueEntry = issues.entrySet()
-                    .parallelStream()
-                    .max(Comparator.comparing(i -> i.getValue().calculateTheAverageIssueOpen()))
-                    .get();
-            Long maxValue = maxValueEntry.getValue().calculateTheAverageIssueOpen();
-            issues.entrySet().stream().forEach(e -> {
-                if (projects.containsKey(e.getKey())) {
-                    projects.get(e.getKey()).setAverageIssueOpen(e.getValue().calculateTheAverageIssueOpen());
-                }
-            });
-            // We must set the max value into the N/A value. Sine it will divide by minimum value.
-            projects.entrySet().parallelStream().forEach(e -> {
-                if (e.getValue().getAverageIssueOpen() == 0L) { // equal to default value. fill max into it.
-                    e.getValue().setAverageIssueOpen(maxValue);
-                }
-            });
-        } catch (Exception e) {
-            LOGGER.error("There is a error while calculating number of commit {}", e.getMessage());
-            return Optional.empty();
-        }
-        return Optional.of(0);
+    public TimeIssueRemainOpen(List<Map<String, Object>> properties,
+                               ConcurrentMap<Long, Project> projects,
+                               String end) {
+        super(properties, projects);
+        defaultCloseAt = end;
     }
 
+    @Override
+    public boolean filter(Map<String, Object> objs) {
+        return (objs.get("event_type").equals("IssuesEvent") &&
+                objs.get("issue_action") != null && (objs.get("issue_action").equals("closed") ||
+                objs.get("issue_action").equals("opened")));
+    }
+
+    @Override
+    public void resetContainer() {
+        issues = null;
+    }
+
+    @Override
+    public void run(Map<String, Object> objs) {
+        try {
+            Long id = (Long) objs.get("repo_id");
+            String createdAt = (String) objs.get("issue_created_at");
+            String closedAt = (String) objs.get("issue_updated_at");
+            Long issueId = (Long) objs.get("issue_id");
+            // In case the issue is open state, We haven't had the close yet. Just fill the end time.
+            if (closedAt.equals("null")) {
+                closedAt = defaultCloseAt;
+            }
+            // REVIEW: Do we really need to make this to second.
+            // The value seem to be big. and not reliable. But I have to go with this approach first.
+            Long openTimeEpoch = TimeUtil.convertStringToEpochSecond(createdAt).get();
+            Long closeTimeEpoch = TimeUtil.convertStringToEpochSecond(closedAt).get();
+            if (issues.containsKey(id)) {
+                Issue issue = issues.get(id);
+                issue.addIssueLifeTime(issueId, openTimeEpoch, closeTimeEpoch);
+                issues.replace(id, issue);
+            } else {
+                Issue issue = new Issue();
+                issue.addIssueLifeTime(issueId, openTimeEpoch, closeTimeEpoch);
+                issues.put(id, issue);
+            }
+        } catch (Exception ex) {
+            objs.entrySet().forEach(
+                    entry -> {
+                        LOGGER.info("Key = {}, value ={}", entry.getKey(), entry.getValue());
+                    }
+            );
+            LOGGER.error("Error while calculating number of issue remaining opened {}", ex.getMessage());
+        }
+    }
+
+    @Override
+    public void calculateMetric() {
+        Long minTimeIssueRemainingOpen = this.projects.values().parallelStream()
+                .min(Comparator.comparing(Project::getAverageIssueOpen)).get().getAverageIssueOpen();
+        Iterator<Map.Entry<Long, Project>> entrySet = projects.entrySet().iterator();
+        while (entrySet.hasNext()) {
+            Map.Entry<Long, Project> entry = entrySet.next();
+            Project project = entry.getValue();
+            Float numTimeIssueRemainMetric = 0F;
+            if (project.getAverageIssueOpen() != 0) {
+                numTimeIssueRemainMetric = (float) minTimeIssueRemainingOpen /
+                        (float) project.getAverageIssueOpen();
+            }
+            project.setHeathyScore(project.getHeathyScore() + numTimeIssueRemainMetric);
+
+        }
+    }
 }

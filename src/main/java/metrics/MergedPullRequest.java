@@ -1,90 +1,92 @@
 package metrics;
 
-import fileutil.FileUtil;
-import github.GithubJsonParser;
 import github.Project;
 import github.PullRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import timeutil.TimeUtil;
 
-import java.util.HashMap;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * The type Merged pull request.
  */
-public class MergedPullRequest {
+public class MergedPullRequest extends BaseMetric {
     private static final Logger LOGGER = LoggerFactory.getLogger(MergedPullRequest.class);
 
-    /**
-     * Calculate time issue remain open optional.
-     * <p>
-     * I suppose the issue will be open then close only.
-     * <p>
-     * That means, We opened an issue then it close. We don't consider case it might be re-open.
-     * <p>
-     * Open --> close. For some specical case like reopen the calculation might be incorrect.
-     *
-     * @param files    the files
-     * @param projects the projects
-     * @return the optional
-     */
-    public static Optional<Integer> calculatePullRequestGetMerged(List<String> files,
-                                                                  Map<Long, Project> projects) {
-        Map<Long, PullRequest> pullRequests = new HashMap<>();
-        try {
-            files.stream().map(f -> FileUtil.getLines(f))
-                    .peek(o -> {
-                        if (!o.isPresent()) {
-                            LOGGER.error("Problem with opening file");
-                        }
-                    })
-                    .filter(o -> o.isPresent())
-                    .flatMap(o -> o.get())
-                    .map(s -> {
-                        return new GithubJsonParser().readMergedPullRequest(s, false);
-                    })
-                    .peek(o -> {
-                        if (!o.isPresent()) {
-                            if (LOGGER.isWarnEnabled()) {
-                                //LOGGER.warn("Problem with reading json file or the entry is not push event");
-                            }
-                        }
-                    })
-                    .filter(o -> o.isPresent())
-                    .map(o -> o.get())
-                    .filter(s -> s.get("merged") != null && (boolean) s.get("merged"))
-                    .forEach(s -> {
-                        Long id = (Long) s.get("id");
-                        String createdAt = (String) s.get("created_at");
-                        String mergedAt = (String) s.get("merged_at");
-                        Long pulRequestId = (Long) s.get("pull_request_id");
-                        Long createDateEpoch = TimeUtil.convertStringToEpochSecond(createdAt).get();
-                        Long mergedDateEpoch = TimeUtil.convertStringToEpochSecond(mergedAt).get();
-                        if (pullRequests.containsKey(id)) {
-                            // This should not happen.
-                            PullRequest pullRequest = pullRequests.get(id);
-                            pullRequest.addNewIssue(pulRequestId, createDateEpoch, mergedDateEpoch);
-                        } else {
-                            PullRequest pullRequest = new PullRequest();
-                            pullRequest.addNewIssue(pulRequestId, createDateEpoch, mergedDateEpoch);
-                            pullRequests.put(id, pullRequest);
-                        }
-                    });
+    private ConcurrentMap<Long, PullRequest> pullRequests = new ConcurrentHashMap<>();
 
-            pullRequests.entrySet().stream().forEach(e -> {
-                if (projects.containsKey(e.getKey())) {
-                    projects.get(e.getKey()).setAveragePullRequestGetMerged(e.getValue().calculateTheAverageTimePullRequestGetMerged());
-                }
-            });
-        } catch (Exception e) {
-            LOGGER.error("There is a error while calculating number of commit {}", e.getMessage());
-            return Optional.empty();
-        }
-        return Optional.of(0);
+    /**
+     * Instantiates a new Merged pull request.
+     *
+     * @param properties the properties
+     * @param projects   the projects
+     */
+    public MergedPullRequest(List<Map<String, Object>> properties, ConcurrentMap<Long, Project> projects) {
+        super(properties, projects);
     }
 
+
+    @Override
+    public void run(Map<String, Object> objs) {
+        try {
+            Long id = (Long) objs.get("pr_id");
+            String createdAt = (String) objs.get("pr_created_at");
+            String mergedAt = (String) objs.get("pr_merged_at");
+            Long pulRequestId = (Long) objs.get("pr_id");
+            Long createDateEpoch = TimeUtil.convertStringToEpochSecond(createdAt).get();
+            Long mergedDateEpoch = TimeUtil.convertStringToEpochSecond(mergedAt).get();
+            if (pullRequests.containsKey(id)) {
+                // This should not happen.
+                PullRequest pullRequest = pullRequests.get(id);
+                pullRequest.addNewIssue(pulRequestId, createDateEpoch, mergedDateEpoch);
+            } else {
+                PullRequest pullRequest = new PullRequest();
+                pullRequest.addNewIssue(pulRequestId, createDateEpoch, mergedDateEpoch);
+                pullRequests.put(id, pullRequest);
+            }
+        } catch (Exception e) {
+            objs.entrySet().forEach(
+                    entry -> {
+                        LOGGER.info("Key = {}, value ={}", entry.getKey(), entry.getValue());
+                    }
+            );
+            LOGGER.error("There is a error while calculating number of commit {}", e.getMessage());
+        }
+    }
+
+    @Override
+    public void resetContainer() {
+        pullRequests = null;
+    }
+
+    @Override
+    public boolean filter(Map<String, Object> objs) {
+        return objs.get("event_type").equals("PullRequestEvent") && objs.get("merged") != null && (boolean) objs.get("merged");
+    }
+
+    @Override
+    public void calculateMetric() {
+        Long minTimePullRequestGetMerged = this.projects.values().parallelStream()
+                .min(Comparator.comparing(Project::getAveragePullRequestGetMerged)).get().getAveragePullRequestGetMerged();
+        Long maxTimePullRequestGetMerged = this.projects.values().parallelStream()
+                .max(Comparator.comparing(Project::getAveragePullRequestGetMerged)).get().getAveragePullRequestGetMerged();
+
+        Iterator<Map.Entry<Long, Project>> entrySet = projects.entrySet().iterator();
+        while (entrySet.hasNext()) {
+            Map.Entry<Long, Project> entry = entrySet.next();
+            Project project = entry.getValue();
+            Float numTimePullRequestGetMerged = 0F;
+            if (maxTimePullRequestGetMerged != 0) {
+                numTimePullRequestGetMerged = ((float) project.getAveragePullRequestGetMerged() - minTimePullRequestGetMerged) /
+                        ((float) maxTimePullRequestGetMerged - minTimePullRequestGetMerged);
+            }
+            project.setHeathyScore(project.getHeathyScore() + numTimePullRequestGetMerged);
+        }
+    }
 }

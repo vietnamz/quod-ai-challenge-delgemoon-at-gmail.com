@@ -1,71 +1,91 @@
 package metrics;
 
-import fileutil.FileUtil;
-import github.CloseIssue;
-import github.GithubJsonParser;
+import github.Issue;
 import github.Project;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import timeutil.TimeUtil;
 
-import java.util.HashMap;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
-public class RatioClosedToOpenIssue {
+/**
+ * The type Ratio closed to open issue.
+ */
+public class RatioClosedToOpenIssue extends BaseMetric {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RatioClosedToOpenIssue.class);
+    private ConcurrentMap<Long, Issue> issues = new ConcurrentHashMap<>();
 
-    public static Optional<Integer> calculateRatioClosedToOpenIssue(List<String> files,
-                                                                    Map<Long, Project> projects) {
-        Map<Long, CloseIssue> issues = new HashMap<>();
+    /**
+     * Instantiates a new Ratio closed to open issue.
+     *
+     * @param properties the properties
+     * @param projects   the projects
+     */
+    public RatioClosedToOpenIssue(List<Map<String, Object>> properties, ConcurrentMap<Long, Project> projects) {
+        super(properties, projects);
+    }
+
+
+    @Override
+    public boolean filter(Map<String, Object> objs) {
+        return objs.get("event_type").equals("IssuesEvent");
+    }
+
+    @Override
+    public void resetContainer() {
+        this.issues = null;
+
+    }
+
+    @Override
+    public void run(Map<String, Object> objs) {
         try {
-            files.stream().map(f -> FileUtil.getLines(f))
-                    .peek(o -> {
-                        if (!o.isPresent()) {
-                            LOGGER.error("Problem with opening file");
-                        }
-                    })
-                    .filter(o -> o.isPresent())
-                    .flatMap(o -> o.get())
-                    .map(s -> {
-                        return new GithubJsonParser().readIssueRemainOpen(s, false);
-                    })
-                    .peek(o -> {
-                        if (!o.isPresent()) {
-                            if (LOGGER.isWarnEnabled()) {
-                                //LOGGER.warn("Problem with reading json file or the entry is not push event");
-                            }
-                        }
-                    })
-                    .filter(o -> o.isPresent())
-                    .map(o -> o.get())
-                    .forEach(s -> {
-                        // LOGGER.info("Info some id = {}", s.get("id"));LOGGER.info("Info some id = {}", s.get("id"));
-                        Long id = (Long) s.get("id");
-                        String updatedAt = (String) s.get("updated_at");
-                        String action = (String) s.get("action");
-                        Long issueId = (Long) s.get("issue_id");
-                        Long updateTimeEpoch = TimeUtil.convertStringToEpochSecond(updatedAt).get();
-                        if (issues.containsKey(id)) {
-                            CloseIssue closeIssue = issues.get(id);
-                            closeIssue.addIssue(issueId, action, updateTimeEpoch);
-                        } else {
-                            CloseIssue closeIssue = new CloseIssue();
-                            closeIssue.addIssue(issueId, action, updateTimeEpoch);
-                            issues.put(id, closeIssue);
-                        }
-                    });
-            issues.entrySet().stream().forEach(entry -> {
-                if (projects.containsKey(entry.getKey())) {
-                    projects.get(entry.getKey()).setRationClosedToOpenIssue(entry.getValue().calculateRatioClosedToOpenIssue());
-                }
-            });
-        } catch (Exception e) {
-            return Optional.empty();
+            Long id = (Long) objs.get("repo_id");
+            String updatedAt = (String) objs.get("issue_updated_at");
+            String action = (String) objs.get("issue_action");
+            Long issueId = (Long) objs.get("issue_id");
+            Long updateTimeEpoch = TimeUtil.convertStringToEpochSecond(updatedAt).get();
+            if (issues.containsKey(id)) {
+                Issue issue = issues.get(id);
+                issue.addIssueState(issueId, action, updateTimeEpoch);
+            } else {
+                Issue issue = new Issue();
+                issue.addIssueState(issueId, action, updateTimeEpoch);
+                issues.put(id, issue);
+            }
+        } catch (Exception ex) {
+            objs.entrySet().forEach(
+                    entry -> {
+                        LOGGER.info("Key = {}, value ={}", entry.getKey(), entry.getValue());
+                    }
+            );
+            LOGGER.error("Error while calculating ration closed to open issue {}", ex.getMessage());
         }
-        return Optional.of(0);
+    }
+
+    @Override
+    public void calculateMetric() {
+        Float minRatioClosedToOpenIssue = this.projects.values().parallelStream()
+                .min(Comparator.comparing(Project::getRationClosedToOpenIssue)).get().getRationClosedToOpenIssue();
+        Float maxRatioClosedToOpenIssue = this.projects.values().parallelStream()
+                .max(Comparator.comparing(Project::getRationClosedToOpenIssue)).get().getRationClosedToOpenIssue();
+        Iterator<Map.Entry<Long, Project>> entrySet = projects.entrySet().iterator();
+        while (entrySet.hasNext()) {
+            Map.Entry<Long, Project> entry = entrySet.next();
+            Project project = entry.getValue();
+            Float ratioOfClosedToOpenIssueMetric = 0F;
+            if (maxRatioClosedToOpenIssue != 0) {
+                ratioOfClosedToOpenIssueMetric = (project.getRationClosedToOpenIssue() - minRatioClosedToOpenIssue) /
+                        (maxRatioClosedToOpenIssue - minRatioClosedToOpenIssue);
+            }
+            project.setHeathyScore(project.getHeathyScore() + ratioOfClosedToOpenIssueMetric);
+        }
     }
 }
 

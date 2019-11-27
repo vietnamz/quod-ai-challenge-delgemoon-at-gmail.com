@@ -85,4 +85,5 @@ public class GithubJsonParserTest {
         Assert.assertEquals(pr.get("comment_id"), 22400085L);
         Assert.assertEquals(pr.get("pull_request_id"), 26743766L);
     }
+    
 }
