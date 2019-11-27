@@ -37,6 +37,9 @@ public class NumOpenPullRequest extends BaseMetric {
             String updatedAt = (String) objs.get("pr_updated_at");
             if (updatedAt == null) {
                 updatedAt = (String) objs.get("created_at");
+                if (updatedAt == null) {
+                    return;
+                }
             }
             Long pulRequestId = (Long) objs.get("pr_id");
             String state = (String) objs.get("pr_state");
