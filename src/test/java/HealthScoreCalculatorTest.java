@@ -1,13 +1,12 @@
 import fileutil.FileUtil;
-import github.Project;
-import metrics.*;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Map;
+import java.util.Arrays;
 
 public class HealthScoreCalculatorTest {
 
@@ -40,12 +39,7 @@ public class HealthScoreCalculatorTest {
 
     }
 
-    @Test
-    public void test() {
-        String hello = "Hello World";
-        Assert.assertEquals(hello, "Hello World");
-    }
-
+    @Ignore
     @Test
     public void healthScoreCalculator_validateInputTime() {
         HealthScoreCalculator healthScoreCalculator = new HealthScoreCalculator();
@@ -55,6 +49,7 @@ public class HealthScoreCalculatorTest {
         Assert.assertEquals(firstElement, "https://data.gharchive.org/2019-11-11-19.json.gz");
     }
 
+    @Ignore
     @Test
     public void healthScoreCalculator_validateInputTime_whenDayLess10() {
         HealthScoreCalculator healthScoreCalculator = new HealthScoreCalculator();
@@ -65,38 +60,15 @@ public class HealthScoreCalculatorTest {
     }
 
     @Test
-    public void healthScoreCalculator_downloadAndStore_success() {
+    public void healthScoreCalculator_downloadAndStore_success1() {
         HealthScoreCalculator healthScoreCalculator = new HealthScoreCalculator();
-        healthScoreCalculator.validateDateTimeInput("2019-10-14T00:00:00Z", "2019-10-14T01:00:00Z");
-        healthScoreCalculator.downloadAndStoreFile(rootFolder);
+        healthScoreCalculator.setListOfJsonFiles(Arrays.asList("src/test/resources/test1"));
+        healthScoreCalculator.loadAllJson();
         healthScoreCalculator.readProjectInformation();
-        Map<Long, Project> projectMap = healthScoreCalculator.getProjects();
-        Project project = projectMap.get(214733191L);
-        Assert.assertEquals(project.getName(), "artist-song-modules-online-web-pt-090819");
-        Assert.assertEquals(project.getOrg(), "ETyannikov");
-        NumOfCommitPerDays
-                .calculateNumOfCommitPerDay(healthScoreCalculator.getListOfJsonFiles(),
-                        healthScoreCalculator.getProjects());
-        TimeIssueRemainOpen.calculateTimeIssueRemainOpen(healthScoreCalculator.getListOfJsonFiles(),
-                healthScoreCalculator.getProjects(), healthScoreCalculator.getEndDate());
-        RatioCommitPerDev.calculateRatioCommitPerDev(healthScoreCalculator.getListOfJsonFiles(),
-                healthScoreCalculator.getProjects());
-        MergedPullRequest.calculatePullRequestGetMerged(healthScoreCalculator.getListOfJsonFiles(),
-                healthScoreCalculator.getProjects());
-        NumberOfRelease.calCulateNumberOfRelease(healthScoreCalculator.getListOfJsonFiles(),
-                healthScoreCalculator.getProjects());
-        NumOpenPullRequest.calculateOpenPullRequest(healthScoreCalculator.getListOfJsonFiles(),
-                healthScoreCalculator.getProjects());
-        NumPeopleOpenNewIssue.calculatePeopeOpenNewIssue(healthScoreCalculator.getListOfJsonFiles(),
-                healthScoreCalculator.getProjects());
-        RatioClosedToOpenIssue.calculateRatioClosedToOpenIssue(healthScoreCalculator.getListOfJsonFiles(),
-                healthScoreCalculator.getProjects());
-        NumReviewPerPullRequest.calculateNumReviewPerPR(healthScoreCalculator.getListOfJsonFiles(),
-                healthScoreCalculator.getProjects());
-        ContributorGrowthOverTime.calculatePullRequestGetMerged(healthScoreCalculator.getListOfJsonFiles(),
-                healthScoreCalculator.getProjects(), healthScoreCalculator.getLocalDateTimeStart(),
-                healthScoreCalculator.getLocalDateTimeEnd());
+        healthScoreCalculator.initMetrics();
         healthScoreCalculator.calculateHealthyScore();
         FileUtil.writeOutToCSV(healthScoreCalculator.getProjects(), "src/test/resources/health.csv");
+
     }
+
 }

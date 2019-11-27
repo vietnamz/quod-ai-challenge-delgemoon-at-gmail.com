@@ -1,76 +1,112 @@
 package metrics;
 
-import fileutil.FileUtil;
-import github.Contributor;
-import github.GithubJsonParser;
 import github.Project;
+import github.PullRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import timeutil.TimeUtil;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
-public class ContributorGrowthOverTime {
+/**
+ * The type Contributor growth over time.
+ */
+public class ContributorGrowthOverTime extends BaseMetric {
     private static final Logger LOGGER = LoggerFactory.getLogger(ContributorGrowthOverTime.class);
+    private ConcurrentMap<Long, PullRequest> pullRequests = new ConcurrentHashMap<>();
+    /**
+     * The Start date.
+     */
+    LocalDateTime startDate;
+    /**
+     * The End date.
+     */
+    LocalDateTime endDate;
 
-    public static Optional<Integer> calculatePullRequestGetMerged(List<String> files,
-                                                                  Map<Long, Project> projects,
-                                                                  LocalDateTime startDate,
-                                                                  LocalDateTime endDate) {
-        Map<Long, Contributor> pullRequests = new HashMap<>();
+
+    /**
+     * Instantiates a new Contributor growth over time.
+     *
+     * @param properties the properties
+     * @param projects   the projects
+     * @param startDate  the start date
+     * @param endDate    the end date
+     */
+    public ContributorGrowthOverTime(List<Map<String, Object>> properties,
+                                     ConcurrentMap<Long, Project> projects,
+                                     LocalDateTime startDate,
+                                     LocalDateTime endDate) {
+        super(properties, projects);
+        this.startDate = startDate;
+        this.endDate = endDate;
+    }
+
+    @Override
+    public void calculateMetric() {
+        Float minAvgContributorGrowthRate = this.projects.values().parallelStream()
+                .min(Comparator.comparing(Project::getContributorGrowthRate)).get().getContributorGrowthRate();
+        Float maxAvgContributorGrowthRate = this.projects.values().parallelStream()
+                .max(Comparator.comparing(Project::getContributorGrowthRate)).get().getContributorGrowthRate();
+        Iterator<Map.Entry<Long, Project>> entrySet = projects.entrySet().iterator();
+        while (entrySet.hasNext()) {
+            Map.Entry<Long, Project> entry = entrySet.next();
+            Project project = entry.getValue();
+            Float numAvgContributorGrowthRate = 0F;
+            if (maxAvgContributorGrowthRate != 0) {
+                numAvgContributorGrowthRate = ((float) project.getNumCommit() - minAvgContributorGrowthRate) /
+                        ((float) maxAvgContributorGrowthRate - minAvgContributorGrowthRate);
+            }
+            project.setHeathyScore(project.getHeathyScore() + numAvgContributorGrowthRate);
+        }
+
+    }
+
+    @Override
+    public boolean filter(Map<String, Object> objs) {
+        return objs.get("event_type").equals("PullRequestEvent") && objs.get("merged") != null && (boolean) objs.get("merged");
+    }
+
+
+    @Override
+    public void resetContainer() {
+        pullRequests = null;
+    }
+
+    @Override
+    public void run(Map<String, Object> objs) {
         try {
-            files.stream().map(f -> FileUtil.getLines(f))
-                    .peek(o -> {
-                        if (!o.isPresent()) {
-                            LOGGER.error("Problem with opening file");
-                        }
-                    })
-                    .filter(o -> o.isPresent())
-                    .flatMap(o -> o.get())
-                    .map(s -> {
-                        return new GithubJsonParser().readMergedPullRequest(s, false);
-                    })
-                    .peek(o -> {
-                        if (!o.isPresent()) {
-                            if (LOGGER.isWarnEnabled()) {
-                                //LOGGER.warn("Problem with reading json file or the entry is not push event");
-                            }
-                        }
-                    })
-                    .filter(o -> o.isPresent())
-                    .map(o -> o.get())
-                    .filter(s -> s.get("merged") != null && (boolean) s.get("merged"))
-                    .forEach(s -> {
-                        Long id = (Long) s.get("id");
-                        String mergedAt = (String) s.get("merged_at");
-                        Long userId = (Long) s.get("user_id");
-                        Long pulRequestId = (Long) s.get("pull_request_id");
-                        Long mergedDateEpoch = TimeUtil.convertStringToEpochSecond(mergedAt).get();
-                        LocalDateTime mergedDate = TimeUtil.convertStringToDateTime(mergedAt).get();
-                        if (pullRequests.containsKey(id)) {
-                            // This should not happen.
-                            Contributor pullRequest = pullRequests.get(id);
-                            pullRequest.addContributor(pulRequestId, userId, mergedDate);
-                        } else {
-                            Contributor pullRequest = new Contributor(startDate, endDate);
-                            pullRequest.addContributor(pulRequestId, userId, mergedDate);
-                            pullRequests.put(id, pullRequest);
-                        }
-                    });
+            Long id = (Long) objs.get("repo_id");
+            String mergedAt = (String) objs.get("pr_merged_at");
+            Long userId = (Long) objs.get("actor_id");
+            Long pulRequestId = (Long) objs.get("pr_id");
+            LocalDateTime mergedDate = TimeUtil.convertStringToDateTime(mergedAt).get();
+            if (pullRequests.containsKey(id)) {
+                // This should not happen.
+                PullRequest pullRequest = pullRequests.get(id);
+                pullRequest.addContributor(pulRequestId, userId, mergedDate);
+            } else {
+                PullRequest pullRequest = new PullRequest(this.startDate, this.endDate);
+                pullRequest.addContributor(pulRequestId, userId, mergedDate);
+                pullRequests.put(id, pullRequest);
+            }
             pullRequests.entrySet().stream().forEach(entry -> {
-                if (projects.containsKey(entry.getKey())) {
-                    projects.get(entry.getKey()).setContributorGrowthRate(entry.getValue().calculateContrinutorGrownRate());
+                if (this.projects.containsKey(entry.getKey())) {
+                    this.projects.get(entry.getKey()).setContributorGrowthRate(entry.getValue().calculateContrinutorGrownRate());
                 }
             });
-
         } catch (Exception e) {
-            LOGGER.error("There is a error while calculating number of commit {}", e.getMessage());
-            return Optional.empty();
+            objs.entrySet().forEach(
+                    entry -> {
+                        LOGGER.info("Key = {}, value ={}", entry.getKey(), entry.getValue());
+                    }
+            );
+            LOGGER.error("Error while calculating contributor growth over time msg={}", e.getMessage());
         }
-        return Optional.of(0);
     }
 }

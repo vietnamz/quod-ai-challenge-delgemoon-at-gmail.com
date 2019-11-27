@@ -1,9 +1,6 @@
 package downloader;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -49,9 +46,10 @@ public class DownloaderTest {
             deleteDirectoryRecursion(dir);
         } catch (IOException ex) {
         }
-        
+
     }
 
+    @Ignore
     @Test()
     public void downloadResource_Success() {
         String url = "https://data.gharchive.org/2015-01-01-15.json.gz";
@@ -61,6 +59,7 @@ public class DownloaderTest {
 
     }
 
+    @Ignore
     @Test()
     public void downloadResource_Fail() {
         String url = "https://data.gharchive.org/2020-01-01-15.json.gz";

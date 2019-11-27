@@ -1,70 +1,96 @@
 package metrics;
 
-import fileutil.FileUtil;
-import github.Developer;
-import github.GithubJsonParser;
+import github.Commit;
 import github.Project;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
-public class RatioCommitPerDev {
+/**
+ * The type Ratio commit per dev.
+ */
+public class RatioCommitPerDev extends BaseMetric {
     private static final Logger LOGGER = LoggerFactory.getLogger(RatioCommitPerDev.class);
 
-    public static Optional<Integer> calculateRatioCommitPerDev(List<String> files, Map<Long, Project> projects) {
-        Map<Long, Developer> developers = new HashMap<>();
+    private ConcurrentMap<Long, Commit> commits = new ConcurrentHashMap<>();
+
+    /**
+     * Instantiates a new Ratio commit per dev.
+     *
+     * @param properties the properties
+     * @param projects   the projects
+     */
+    public RatioCommitPerDev(List<Map<String, Object>> properties, ConcurrentMap<Long, Project> projects) {
+        super(properties, projects);
+    }
+
+    @Override
+    public void run(Map<String, Object> objs) {
         try {
-            files.stream().map(f -> FileUtil.getLines(f))
-                    .peek(o -> {
-                        if (!o.isPresent()) {
-                            LOGGER.error("Problem with opening file");
-                        }
-                    })
-                    .filter(o -> o.isPresent())
-                    .flatMap(o -> o.get())
-                    .map(s -> {
-                        return new GithubJsonParser().readCommitsPerDay(s, false);
-                    })
-                    .peek(o -> {
-                        if (!o.isPresent()) {
-                            if (LOGGER.isWarnEnabled()) {
-                                //LOGGER.warn("Problem with reading json file or the entry is not push event");
-                            }
-                        }
-                    })
-                    .filter(o -> o.isPresent())
-                    .map(o -> o.get())
-                    .forEach(s -> {
-                        Long id = null;
-                        Long actorId = null;
-                        if (s.get("id") == null) {
-                            //LOGGER.error("There is no id in the entry, ignore");
-                            return;
-                        }
-                        id = (Long) s.get("id");
-                        actorId = (Long) s.get("actor_id");
-                        if (developers.containsKey(id)) {
-                            Developer developer = developers.get(id);
-                            developer.addDeveloper(actorId);
-                        } else {
-                            Developer developer = new Developer();
-                            developer.addDeveloper(actorId);
-                            developers.put(id, developer);
-                        }
-                    });
-            developers.entrySet().parallelStream().forEach(s -> {
+            Long id = null;
+            Long actorId = null;
+            if (objs.get("repo_id") == null) {
+                //LOGGER.error("There is no id in the entry, ignore");
+                return;
+            }
+            id = (Long) objs.get("repo_id");
+            actorId = (Long) objs.get("actor_id");
+            if (commits.containsKey(id)) {
+                Commit developer = commits.get(id);
+                developer.addCreator(actorId);
+            } else {
+                Commit developer = new Commit();
+                developer.addCreator(actorId);
+                commits.put(id, developer);
+            }
+            commits.entrySet().parallelStream().forEach(s -> {
                 if (projects.containsKey(s.getKey())) {
                     projects.get(s.getKey()).setRatioCommitPerDev(s.getValue().calculateRatioCommitPerDev());
                 }
             });
-        } catch (Exception e) {
-            LOGGER.error("There is a error while calculating number of commit {}", e.getMessage());
-            return Optional.empty();
+        } catch (Exception ex) {
+            objs.entrySet().forEach(
+                    entry -> {
+                        LOGGER.info("Key = {}, value ={}", entry.getKey(), entry.getValue());
+                    }
+            );
+            LOGGER.error("Error while calculating ration of commit per dev {}", ex.getMessage());
         }
-        return Optional.of(0);
+    }
+
+    @Override
+    public void resetContainer() {
+        commits = null;
+    }
+
+    @Override
+    public boolean filter(Map<String, Object> objs) {
+        return objs.get("event_type").equals("PushEvent");
+    }
+
+    @Override
+    public void calculateMetric() {
+        Integer maxRatioCommitPerDev = this.projects.values().parallelStream()
+                .max(Comparator.comparing(Project::getRatioCommitPerDev)).get().getRatioCommitPerDev();
+        Integer minRatioCommitPerDev = this.projects.values().parallelStream()
+                .min(Comparator.comparing(Project::getRatioCommitPerDev)).get().getRatioCommitPerDev();
+        Iterator<Map.Entry<Long, Project>> entrySet = projects.entrySet().iterator();
+        while (entrySet.hasNext()) {
+            Map.Entry<Long, Project> entry = entrySet.next();
+            Project project = entry.getValue();
+            Float ratioCommitPerDevMetric = 0F;
+            if (maxRatioCommitPerDev != 0) {
+                ratioCommitPerDevMetric = ((float) project.getRatioCommitPerDev() - (float) minRatioCommitPerDev) /
+                        ((float) maxRatioCommitPerDev - (float) minRatioCommitPerDev);
+            }
+            project.setHeathyScore(project.getHeathyScore() + ratioCommitPerDevMetric);
+        }
+
     }
 }

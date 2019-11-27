@@ -1,6 +1,6 @@
 import downloader.Downloader;
 import fileutil.FileUtil;
-import github.GithubJsonParser;
+import github.JsonParser;
 import github.Project;
 import metrics.*;
 import org.slf4j.Logger;
@@ -10,7 +10,12 @@ import timeutil.TimeUtil;
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 /**
@@ -22,22 +27,24 @@ public class HealthScoreCalculator {
 
     private final static String githubArchiveUrl = "https://data.gharchive.org/";
 
+    /**
+     * The End date.
+     */
     String endDate = null;
     private List<String> anHoursFiles = new ArrayList<>();
     private List<String> listOfJsonFiles = new ArrayList<>();
-    private Map<Long, Project> projects = new HashMap<>();
+    private ConcurrentMap<Long, Project> projects = new ConcurrentHashMap<>();
     private LocalDateTime localDateTimeStart = null;
     private LocalDateTime localDateTimeEnd = null;
-
-
     /**
-     * Just start to see java docwork.
-     *
-     * @param hello the hello
+     * The Jsons.
      */
-    public void justStartToSeeJavaDocwork(String hello) {
-        System.out.println(hello);
-    }
+    List<Map<String, Object>> jsons = null;
+    /**
+     * The Metric actions.
+     */
+    List<IMetricAction> metricActions = new ArrayList<>();
+
 
     private String appendToZero(int number) {
         StringBuilder sb = new StringBuilder();
@@ -95,6 +102,11 @@ public class HealthScoreCalculator {
 
     }
 
+    /**
+     * Gets end date.
+     *
+     * @return the end date
+     */
     public String getEndDate() {
         return endDate;
     }
@@ -108,22 +120,48 @@ public class HealthScoreCalculator {
         return anHoursFiles;
     }
 
+    /**
+     * Gets list of json files.
+     *
+     * @return the list of json files
+     */
     public List<String> getListOfJsonFiles() {
         return listOfJsonFiles;
     }
 
+    /**
+     * Gets projects.
+     *
+     * @return the projects
+     */
     public Map<Long, Project> getProjects() {
         return projects;
     }
 
+    /**
+     * Gets local date time end.
+     *
+     * @return the local date time end
+     */
     public LocalDateTime getLocalDateTimeEnd() {
         return localDateTimeEnd;
     }
 
+    /**
+     * Gets local date time start.
+     *
+     * @return the local date time start
+     */
     public LocalDateTime getLocalDateTimeStart() {
         return localDateTimeStart;
     }
 
+    /**
+     * Delete directory recursion.
+     *
+     * @param file the file
+     * @throws IOException the io exception
+     */
     public void deleteDirectoryRecursion(File file) throws IOException {
         if (file.isDirectory()) {
             File[] entries = file.listFiles();
@@ -138,6 +176,12 @@ public class HealthScoreCalculator {
         }
     }
 
+    /**
+     * Download and store file.
+     *
+     * @param location the location
+     * @throws IllegalStateException the illegal state exception
+     */
     public void downloadAndStoreFile(String location) throws IllegalStateException {
 
         if (this.getAnHoursFiles().size() == 0) {
@@ -163,161 +207,96 @@ public class HealthScoreCalculator {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Read project information.
+     *
+     * @throws IllegalStateException the illegal state exception
+     */
     public void readProjectInformation() throws IllegalStateException {
+        this.jsons.forEach(s -> {
+            if (s.containsKey("repo_id")) {
+                if (projects.containsKey(s.get("repo_id"))) {
+                    return;
+                } else {
+                    Project project = new Project();
+                    Long id = (Long) s.get("repo_id");
+                    project.setId(id);
+                    if (s.containsKey("repo_name")) {
+                        String org;
+                        String name = (String) s.get("repo_name");
+                        if (!name.contains("/")) {
+                            project.setName(name);
+                            project.setOrg(name);
+                            projects.put((Long) s.get("repo_id"), project);
+                            return;
+                        }
+                        org = name.substring(0, name.indexOf("/"));
+                        String projectName = name.substring(name.indexOf("/") + 1);
+                        project.setName(projectName);
+                        project.setOrg(org);
+                        projects.put((Long) s.get("repo_id"), project);
+                    }
+                }
+            }
+        });
+
+    }
+
+    /**
+     * Load all json.
+     *
+     * @throws IllegalStateException the illegal state exception
+     */
+    public void loadAllJson() throws IllegalStateException {
         if (this.listOfJsonFiles.size() == 0) {
             LOGGER.warn("No data is download yet!!!!");
             throw new IllegalStateException("No data is download yet!!!!");
         }
-        this.listOfJsonFiles.stream().map(f -> FileUtil.getLines(f))
+        this.jsons = this.listOfJsonFiles.parallelStream().map(f -> FileUtil.getLines(f))
                 .peek(o -> {
                     if (!o.isPresent()) {
                         LOGGER.error("Problem with opening file");
                     }
                 })
-                .filter(o -> o.isPresent())
-                .flatMap(s -> s.get())
-                .map(s -> {
-                    return new GithubJsonParser().readRepoInfo(s, false);
-                })
+                .filter(Optional::isPresent)
+                .flatMap(Optional::get)
+                .map(s -> new JsonParser().readJsonContent(s))
                 .peek(o -> {
                     if (!o.isPresent()) {
                         LOGGER.warn("The data is invalid");
                     }
                 })
-                .filter(o -> o.isPresent())
-                .map(s -> s.get())
-                .forEach(s -> {
-                    if (s.containsKey("id")) {
-                        if (projects.containsKey(s.get("id"))) {
-                            return;
-                        } else {
-                            Project project = new Project();
-                            Long id = (Long) s.get("id");
-                            project.setId(id);
-                            if (s.containsKey("name")) {
-                                String name = (String) s.get("name");
-                                String org = name.substring(0, name.indexOf("/"));
-                                String projectName = name.substring(name.indexOf("/") + 1);
-                                project.setName(projectName);
-                                project.setOrg(org);
-                                projects.put((Long) s.get("id"), project);
-                            }
-                        }
-                    }
-                });
-
+                .filter(Optional::isPresent)
+                .map(Optional::get).collect(Collectors.toList());
     }
 
+    /**
+     * Init metrics.
+     */
+    public void initMetrics() {
+        metricActions.add(new NumOfCommitPerDays(jsons, this.projects));
+        metricActions.add(new ContributorGrowthOverTime(jsons, this.projects,
+                this.localDateTimeStart, this.localDateTimeEnd));
+        metricActions.add(new TimeIssueRemainOpen(jsons, this.projects, this.endDate));
+        metricActions.add(new RatioCommitPerDev(jsons, this.projects));
+        metricActions.add(new RatioClosedToOpenIssue(jsons, this.projects));
+        metricActions.add(new NumReviewPerPullRequest(jsons, this.projects));
+        metricActions.add(new NumPeopleOpenNewIssue(jsons, this.projects));
+        metricActions.add(new NumOpenPullRequest(jsons, this.projects));
+        metricActions.add(new NumberOfRelease(jsons, this.projects));
+        metricActions.add(new MergedPullRequest(jsons, this.projects));
+    }
+
+    /**
+     * Calculate healthy score.
+     */
     public void calculateHealthyScore() {
-        if (this.getProjects().size() == 0) {
+        if (this.projects.size() == 0) {
             throw new IllegalStateException("Please start downloading file and store before do calculation");
         }
-        Integer maxNumberOfcommit = this.getProjects().values().parallelStream()
-                .max(Comparator.comparing(Project::getNumCommit)).get().getNumCommit();
-        Integer minNumberOfcommit = this.getProjects().values().parallelStream()
-                .min(Comparator.comparing(Project::getNumCommit)).get().getNumCommit();
-        Long minTimeIssueRemainingOpen = this.getProjects().values().parallelStream()
-                .min(Comparator.comparing(Project::getAverageIssueOpen)).get().getAverageIssueOpen();
-        Integer maxRatioCommitPerDev = this.getProjects().values().parallelStream()
-                .max(Comparator.comparing(Project::getRatioCommitPerDev)).get().getRatioCommitPerDev();
-        Integer minRatioCommitPerDev = this.getProjects().values().parallelStream()
-                .min(Comparator.comparing(Project::getRatioCommitPerDev)).get().getRatioCommitPerDev();
-        Long minTimePullRequestGetMerged = this.getProjects().values().parallelStream()
-                .min(Comparator.comparing(Project::getAveragePullRequestGetMerged)).get().getAveragePullRequestGetMerged();
-        Long maxTimePullRequestGetMerged = this.getProjects().values().parallelStream()
-                .max(Comparator.comparing(Project::getAveragePullRequestGetMerged)).get().getAveragePullRequestGetMerged();
-        Integer minNumOfRelease = this.getProjects().values().parallelStream()
-                .min(Comparator.comparing(Project::getNumOfReleases)).get().getNumOfReleases();
-        Integer maxNumOfRelease = this.getProjects().values().parallelStream()
-                .max(Comparator.comparing(Project::getNumOfReleases)).get().getNumOfReleases();
-        Integer minNumOfOpenPullRequest = this.getProjects().values().parallelStream()
-                .min(Comparator.comparing(Project::getNumOfOpenPullRequest)).get().getNumOfOpenPullRequest();
-        Integer maxNumOfOpenPullRequest = this.getProjects().values().parallelStream()
-                .max(Comparator.comparing(Project::getNumOfOpenPullRequest)).get().getNumOfOpenPullRequest();
-        Integer minNumOfPeopleOpenIssue = this.getProjects().values().parallelStream()
-                .min(Comparator.comparing(Project::getNumOfPeopleOpenNewIssue)).get().getNumOfPeopleOpenNewIssue();
-        Integer maxNumOfPeopleOpenIssue = this.getProjects().values().parallelStream()
-                .max(Comparator.comparing(Project::getNumOfPeopleOpenNewIssue)).get().getNumOfPeopleOpenNewIssue();
-        Float minRatioClosedToOpenIssue = this.getProjects().values().parallelStream()
-                .min(Comparator.comparing(Project::getRationClosedToOpenIssue)).get().getRationClosedToOpenIssue();
-        Float maxRatioClosedToOpenIssue = this.getProjects().values().parallelStream()
-                .max(Comparator.comparing(Project::getRationClosedToOpenIssue)).get().getRationClosedToOpenIssue();
-        Integer minAvgNumReviewPerPR = this.getProjects().values().parallelStream()
-                .min(Comparator.comparing(Project::getAverageReviewPerPR)).get().getAverageReviewPerPR();
-        Integer maxAvgNumReviewPerPR = this.getProjects().values().parallelStream()
-                .max(Comparator.comparing(Project::getAverageReviewPerPR)).get().getAverageReviewPerPR();
-        Float minAvgContributorGrowthRate = this.getProjects().values().parallelStream()
-                .min(Comparator.comparing(Project::getContributorGrowthRate)).get().getContributorGrowthRate();
-        Float maxAvgContributorGrowthRate = this.getProjects().values().parallelStream()
-                .max(Comparator.comparing(Project::getContributorGrowthRate)).get().getContributorGrowthRate();
-        LOGGER.info("maxAvgContributorGrowthRate {}", maxAvgContributorGrowthRate);
-        Iterator<Map.Entry<Long, Project>> entrySet = projects.entrySet().iterator();
-        while (entrySet.hasNext()) {
-            Map.Entry<Long, Project> entry = entrySet.next();
-            Project project = entry.getValue();
-            Float numOfCommitMetric = 0F;
-            if (maxNumberOfcommit != 0) {
-                numOfCommitMetric = ((float) project.getNumCommit() - (float) minNumberOfcommit) /
-                        ((float) maxNumberOfcommit - (float) minNumberOfcommit);
-            }
-            Float numTimeIssueRemainMetric = 0F;
-            if (project.getAverageIssueOpen() != 0) {
-                numTimeIssueRemainMetric = (float) minTimeIssueRemainingOpen /
-                        (float) project.getAverageIssueOpen();
-            }
-
-            Float ratioCommitPerDevMetric = 0F;
-            if (maxRatioCommitPerDev != 0) {
-                ratioCommitPerDevMetric = ((float) project.getRatioCommitPerDev() - (float) minRatioCommitPerDev) /
-                        ((float) maxRatioCommitPerDev - (float) minRatioCommitPerDev);
-            }
-            Float numTimePullRequestGetMergedMetric = 0F;
-            if (maxTimePullRequestGetMerged != 0) {
-                numTimePullRequestGetMergedMetric = ((float) project.getAveragePullRequestGetMerged() -
-                        (float) minTimePullRequestGetMerged) /
-                        ((float) maxTimePullRequestGetMerged - (float) minTimePullRequestGetMerged);
-            }
-            Float numOfReleaseMetric = 0F;
-            if (maxNumOfRelease != 0) {
-                numOfReleaseMetric = ((float) project.getNumOfReleases() - (float) minNumOfRelease) /
-                        ((float) maxNumOfRelease - (float) minNumOfRelease);
-            }
-            Float numOfOpenPullRequestMetric = 0F;
-            if (maxNumOfOpenPullRequest != 0) {
-                numOfOpenPullRequestMetric = ((float) project.getNumOfOpenPullRequest() - (float) minNumOfOpenPullRequest) /
-                        ((float) maxNumOfOpenPullRequest - (float) minNumOfOpenPullRequest);
-            }
-            Float numOfPeopleOpenIssueMetric = 0F;
-            if (maxNumOfPeopleOpenIssue != 0) {
-                numOfPeopleOpenIssueMetric = ((float) project.getNumOfPeopleOpenNewIssue() - (float) minNumOfPeopleOpenIssue) /
-                        ((float) maxNumOfPeopleOpenIssue - (float) minNumOfPeopleOpenIssue);
-            }
-            Float ratioOfClosedToOpenIssueMetric = 0F;
-            if (maxRatioClosedToOpenIssue != 0) {
-                ratioOfClosedToOpenIssueMetric = (project.getRationClosedToOpenIssue() - minRatioClosedToOpenIssue) /
-                        (maxRatioClosedToOpenIssue - minRatioClosedToOpenIssue);
-            }
-            Integer numAvgReviewPerPRMetric = 0;
-            if (maxAvgNumReviewPerPR != 0) {
-                numAvgReviewPerPRMetric = (project.getAverageReviewPerPR() - minAvgNumReviewPerPR) /
-                        (maxAvgNumReviewPerPR - minAvgNumReviewPerPR);
-            }
-            Float numAvgContributorGrowthRateMetric = 0F;
-            if (maxAvgContributorGrowthRate != 0) {
-                numAvgContributorGrowthRateMetric = (project.getContributorGrowthRate() - maxAvgContributorGrowthRate) /
-                        (maxAvgContributorGrowthRate - minAvgContributorGrowthRate);
-            }
-            Float healthyScore = numOfCommitMetric + numTimeIssueRemainMetric +
-                    ratioCommitPerDevMetric +
-                    numTimePullRequestGetMergedMetric +
-                    numOfReleaseMetric +
-                    numOfOpenPullRequestMetric +
-                    ratioOfClosedToOpenIssueMetric +
-                    numAvgReviewPerPRMetric +
-                    numAvgContributorGrowthRateMetric +
-                    numOfPeopleOpenIssueMetric;
-            project.setHeathyScore(healthyScore);
-        }
+        metricActions.parallelStream().forEach(
+                IMetricAction::execute
+        );
     }
 
     /**
@@ -335,29 +314,9 @@ public class HealthScoreCalculator {
          */
         healthScoreCalculator.validateDateTimeInput(args[0], args[1]);
         healthScoreCalculator.downloadAndStoreFile("src/main/resources/githubdata");
+        healthScoreCalculator.loadAllJson();
         healthScoreCalculator.readProjectInformation();
-        NumOfCommitPerDays
-                .calculateNumOfCommitPerDay(healthScoreCalculator.getListOfJsonFiles(),
-                        healthScoreCalculator.getProjects());
-        TimeIssueRemainOpen.calculateTimeIssueRemainOpen(healthScoreCalculator.getListOfJsonFiles(),
-                healthScoreCalculator.getProjects(), healthScoreCalculator.getEndDate());
-        RatioCommitPerDev.calculateRatioCommitPerDev(healthScoreCalculator.getListOfJsonFiles(),
-                healthScoreCalculator.getProjects());
-        MergedPullRequest.calculatePullRequestGetMerged(healthScoreCalculator.getListOfJsonFiles(),
-                healthScoreCalculator.getProjects());
-        NumberOfRelease.calCulateNumberOfRelease(healthScoreCalculator.getListOfJsonFiles(),
-                healthScoreCalculator.getProjects());
-        NumOpenPullRequest.calculateOpenPullRequest(healthScoreCalculator.getListOfJsonFiles(),
-                healthScoreCalculator.getProjects());
-        NumPeopleOpenNewIssue.calculatePeopeOpenNewIssue(healthScoreCalculator.getListOfJsonFiles(),
-                healthScoreCalculator.getProjects());
-        RatioClosedToOpenIssue.calculateRatioClosedToOpenIssue(healthScoreCalculator.getListOfJsonFiles(),
-                healthScoreCalculator.getProjects());
-        NumReviewPerPullRequest.calculateNumReviewPerPR(healthScoreCalculator.getListOfJsonFiles(),
-                healthScoreCalculator.getProjects());
-        ContributorGrowthOverTime.calculatePullRequestGetMerged(healthScoreCalculator.getListOfJsonFiles(),
-                healthScoreCalculator.getProjects(), healthScoreCalculator.getLocalDateTimeStart(),
-                healthScoreCalculator.getLocalDateTimeEnd());
+        healthScoreCalculator.initMetrics();
         healthScoreCalculator.calculateHealthyScore();
         try {
             healthScoreCalculator.deleteDirectoryRecursion(new File("src/main/resources/githubdata"));
@@ -366,5 +325,14 @@ public class HealthScoreCalculator {
         }
         FileUtil.writeOutToCSV(healthScoreCalculator.getProjects(), "health_scores.csv");
 
+    }
+
+    /**
+     * Sets list of json files.
+     *
+     * @param listOfJsonFiles the list of json files
+     */
+    public void setListOfJsonFiles(List<String> listOfJsonFiles) {
+        this.listOfJsonFiles = listOfJsonFiles;
     }
 }

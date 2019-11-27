@@ -1,68 +1,94 @@
 package metrics;
 
-import fileutil.FileUtil;
-import github.GithubJsonParser;
 import github.Project;
-import github.PullRequestReview;
+import github.PullRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 
 // Question: should we care about close review.
 
-public class NumReviewPerPullRequest {
+/**
+ * The type Num review per pull request.
+ */
+public class NumReviewPerPullRequest extends BaseMetric {
     private static final Logger LOGGER = LoggerFactory.getLogger(NumOpenPullRequest.class);
+    private ConcurrentMap<Long, PullRequest> pullRequests = new ConcurrentHashMap<>();
 
-    public static Optional<Integer> calculateNumReviewPerPR(List<String> files,
-                                                            Map<Long, Project> projects) {
-        Map<Long, PullRequestReview> pullRequests = new HashMap<>();
+    /**
+     * Instantiates a new Num review per pull request.
+     *
+     * @param properties the properties
+     * @param projectMap the project map
+     */
+    public NumReviewPerPullRequest(List<Map<String, Object>> properties, ConcurrentMap<Long, Project> projectMap) {
+        super(properties, projectMap);
+    }
+
+    @Override
+    public void run(Map<String, Object> objs) {
         try {
-            files.stream().map(f -> FileUtil.getLines(f))
-                    .peek(o -> {
-                        if (!o.isPresent()) {
-                            LOGGER.error("Problem with opening file");
-                        }
-                    })
-                    .filter(o -> o.isPresent())
-                    .flatMap(o -> o.get())
-                    .map(s -> {
-                        return new GithubJsonParser().readPullRequestReviewEvent(s, false);
-                    })
-                    .peek(o -> {
-                        if (!o.isPresent()) {
-                            if (LOGGER.isWarnEnabled()) {
-                                //LOGGER.warn("Problem with reading json file or the entry is not push event");
-                            }
-                        }
-                    })
-                    .filter(o -> o.isPresent())
-                    .map(o -> o.get())
-                    .forEach(s -> {
-                        Long id = (Long) s.get("id");
-                        Long pulRequestId = (Long) s.get("pull_request_id");
-                        if (pullRequests.containsKey(id)) {
-                            PullRequestReview pullRequestReview = pullRequests.get(id);
-                            pullRequestReview.addReview(pulRequestId);
-                        } else {
-                            PullRequestReview pullRequestReview = new PullRequestReview();
-                            pullRequestReview.addReview(pulRequestId);
-                            pullRequests.put(id, pullRequestReview);
-                        }
-                    });
+            Long id = (Long) objs.get("repo_id");
+            Long pulRequestId = (Long) objs.get("pull_request_id");
+            if (pullRequests.containsKey(id)) {
+                PullRequest pullRequest = pullRequests.get(id);
+                pullRequest.addPRReview(pulRequestId);
+            } else {
+                PullRequest pullRequest = new PullRequest();
+                pullRequest.addPRReview(pulRequestId);
+                pullRequests.put(id, pullRequest);
+            }
             pullRequests.entrySet().stream().forEach(entry -> {
                 if (projects.containsKey(entry.getKey())) {
                     projects.get(entry.getKey()).setAverageReviewPerPR(entry.getValue().calculateAverageNumOfReview());
                 }
             });
         } catch (Exception e) {
-            LOGGER.error("There is a error while calculating number of commit {}", e.getMessage());
-            return Optional.empty();
+            objs.entrySet().forEach(
+                    entry -> {
+                        LOGGER.info("Key = {}, value ={}", entry.getKey(), entry.getValue());
+                    }
+            );
+            LOGGER.error("There is a error while calculating number of review per PR {}", e.getMessage());
         }
-        return Optional.of(0);
+    }
+
+    @Override
+    public void resetContainer() {
+        pullRequests = null;
+
+    }
+
+    @Override
+    public boolean filter(Map<String, Object> objs) {
+        return objs.get("event_type").equals("PullRequestReviewCommentEvent");
+    }
+
+    @Override
+    public void calculateMetric() {
+        Integer minAvgNumReviewPerPR = this.projects.values().parallelStream()
+                .min(Comparator.comparing(Project::getAverageReviewPerPR)).get().getAverageReviewPerPR();
+        Integer maxAvgNumReviewPerPR = this.projects.values().parallelStream()
+                .max(Comparator.comparing(Project::getAverageReviewPerPR)).get().getAverageReviewPerPR();
+        Iterator<Map.Entry<Long, Project>> entrySet = projects.entrySet().iterator();
+        while (entrySet.hasNext()) {
+            Map.Entry<Long, Project> entry = entrySet.next();
+            Project project = entry.getValue();
+            Integer numAvgReviewPerPRMetric = 0;
+            if (maxAvgNumReviewPerPR != 0) {
+                numAvgReviewPerPRMetric = (project.getAverageReviewPerPR() - minAvgNumReviewPerPR) /
+                        (maxAvgNumReviewPerPR - minAvgNumReviewPerPR);
+            }
+            project.setHeathyScore(project.getHeathyScore() + numAvgReviewPerPRMetric);
+
+        }
+
     }
 }

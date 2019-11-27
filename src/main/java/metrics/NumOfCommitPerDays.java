@@ -1,22 +1,22 @@
 package metrics;
 
-import fileutil.FileUtil;
 import github.Commit;
-import github.GithubJsonParser;
 import github.Project;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import timeutil.TimeUtil;
 
-import java.util.HashMap;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * The type Num of commit per days.
  */
-public class NumOfCommitPerDays {
+public class NumOfCommitPerDays extends BaseMetric {
 
     /**
      * Calculate num of commit per day float.
@@ -25,69 +25,95 @@ public class NumOfCommitPerDays {
      * @return the float
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(NumOfCommitPerDays.class);
+    private ConcurrentMap<Long, Commit> commits = new ConcurrentHashMap<>();
+    private Object lock = new Object();
 
-    public static Optional<Integer> calculateNumOfCommitPerDay(List<String> files, Map<Long, Project> projects) {
-        Map<Long, Commit> commits = new HashMap<>();
+
+    /**
+     * Instantiates a new Num of commit per days.
+     *
+     * @param properties the properties
+     * @param projectMap the project map
+     */
+    public NumOfCommitPerDays(List<Map<String, Object>> properties, ConcurrentMap<Long, Project> projectMap) {
+        super(properties, projectMap);
+    }
+
+
+    @Override
+    public void run(Map<String, Object> objs) {
         try {
-            files.stream().map(f -> FileUtil.getLines(f))
-                    .peek(o -> {
-                        if (!o.isPresent()) {
-                            LOGGER.error("Problem with opening file");
-                        }
-                    })
-                    .filter(o -> o.isPresent())
-                    .flatMap(o -> o.get())
-                    .map(s -> {
-                        return new GithubJsonParser().readCommitsPerDay(s, false);
-                    })
-                    .peek(o -> {
-                        if (!o.isPresent()) {
-                            if (LOGGER.isWarnEnabled()) {
-                                //LOGGER.warn("Problem with reading json file or the entry is not push event");
-                            }
-                        }
-                    })
-                    .filter(o -> o.isPresent())
-                    .map(o -> o.get())
-                    .forEach(s -> {
-                        Long id = null;
-                        String createdAt = null;
-                        if (s.get("id") == null) {
-                            //LOGGER.error("There is no id in the entry, ignore");
-                            return;
-                        }
-                        id = (Long) s.get("id");
-                        createdAt = (String) s.get("created_at");
-                        Long timeEpoch = null;
-                        if (TimeUtil.convertStringToEpochDay(createdAt).isPresent()) {
-                            timeEpoch = TimeUtil.convertStringToEpochDay(createdAt).get();
-                        } else {
-                            return;
-                        }
-                        if (commits.containsKey(id)) {
-                            Commit commit = commits.get(id);
-                            commit.incrCommitForDay(timeEpoch);
-                        } else {
-                            Commit commit = new Commit();
-                            commit.incrCommitForDay(timeEpoch);
-                            commits.put(id, commit);
-                        }
-
-                    });
+            Long id;
+            String createdAt;
+            if (objs.get("repo_id") == null) {
+                return;
+            }
+            id = (Long) objs.get("repo_id");
+            createdAt = (String) objs.get("created_at");
+            Long timeEpoch;
+            if (TimeUtil.convertStringToEpochDay(createdAt).isPresent()) {
+                timeEpoch = TimeUtil.convertStringToEpochDay(createdAt).get();
+            } else {
+                return;
+            }
+            if (commits.containsKey(id)) {
+                Commit commit = commits.get(id);
+                commit.incrCommitForDay(timeEpoch);
+            } else {
+                Commit commit = new Commit();
+                commit.incrCommitForDay(timeEpoch);
+                commits.put(id, commit);
+            }
             commits.entrySet().parallelStream().forEach(
                     entrySet -> {
                         Commit commit = entrySet.getValue();
-                        if (projects.containsKey(entrySet.getKey())) {
-                            Project project = projects.get(entrySet.getKey());
+                        if (this.projects.containsKey(entrySet.getKey())) {
+                            //synchronized (lock) {
+                            Project project = this.projects.get(entrySet.getKey());
                             project.setNumCommit(commit.calculateAverageCommit());
+                            //}
+
                         }
                     }
             );
-        } catch (Exception e) {
-            LOGGER.error("There is a error while calculating number of commit {}", e.getMessage());
-            return Optional.empty();
+        } catch (Exception ex) {
+            objs.entrySet().forEach(
+                    entry -> {
+                        LOGGER.info("Key = {}, value ={}", entry.getKey(), entry.getValue());
+                    }
+            );
+            LOGGER.error("Error while calculating number of commit {}", ex.getMessage());
         }
-        return Optional.of(0);
+
     }
 
+    @Override
+    public boolean filter(Map<String, Object> objs) {
+        return true;
+    }
+
+    @Override
+    public void calculateMetric() {
+        Integer maxNumberOfcommit = this.projects.values().parallelStream()
+                .max(Comparator.comparing(Project::getNumCommit)).get().getNumCommit();
+        Integer minNumberOfcommit = this.projects.values().parallelStream()
+                .min(Comparator.comparing(Project::getNumCommit)).get().getNumCommit();
+        Iterator<Map.Entry<Long, Project>> entrySet = projects.entrySet().iterator();
+        while (entrySet.hasNext()) {
+            Map.Entry<Long, Project> entry = entrySet.next();
+            Project project = entry.getValue();
+            Float numOfCommitMetric = 0F;
+            if (maxNumberOfcommit != 0) {
+                numOfCommitMetric = ((float) project.getNumCommit() - (float) minNumberOfcommit) /
+                        ((float) maxNumberOfcommit - (float) minNumberOfcommit);
+            }
+            project.setHeathyScore(project.getHeathyScore() + numOfCommitMetric);
+        }
+    }
+
+    @Override
+    public void resetContainer() {
+        Map<Long, Commit> commits = null;
+    }
 }
+

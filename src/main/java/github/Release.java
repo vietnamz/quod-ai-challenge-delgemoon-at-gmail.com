@@ -5,14 +5,14 @@ import java.util.Set;
 
 public class Release {
 
-    Set<Long> counts = new HashSet<>();
+    Set<Long> numOfReleases = new HashSet<>();
 
 
     public void addRelease(Long releaseId) {
-        counts.add(releaseId);
+        numOfReleases.add(releaseId);
     }
 
     public int calculateNumOfRelease() {
-        return counts.size();
+        return numOfReleases.size();
     }
 }

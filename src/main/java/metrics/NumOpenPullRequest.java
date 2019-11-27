@@ -1,70 +1,97 @@
 package metrics;
 
-import fileutil.FileUtil;
-import github.GithubJsonParser;
-import github.OpenPullRequest;
 import github.Project;
+import github.PullRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import timeutil.TimeUtil;
 
-import java.util.HashMap;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
-public class NumOpenPullRequest {
+/**
+ * The type Num open pull request.
+ */
+public class NumOpenPullRequest extends BaseMetric {
     private static final Logger LOGGER = LoggerFactory.getLogger(NumOpenPullRequest.class);
+    private ConcurrentMap<Long, PullRequest> openPullRequests = new ConcurrentHashMap<>();
 
-    public static Optional<Integer> calculateOpenPullRequest(List<String> files,
-                                                             Map<Long, Project> projects) {
-        Map<Long, OpenPullRequest> openPullRequests = new HashMap<>();
+    /**
+     * Instantiates a new Num open pull request.
+     *
+     * @param properties the properties
+     * @param projectMap the project map
+     */
+    public NumOpenPullRequest(List<Map<String, Object>> properties, ConcurrentMap<Long, Project> projectMap) {
+        super(properties, projectMap);
+    }
+
+    @Override
+    public void run(Map<String, Object> objs) {
         try {
-            files.stream().map(f -> FileUtil.getLines(f))
-                    .peek(o -> {
-                        if (!o.isPresent()) {
-                            LOGGER.error("Problem with opening file");
-                        }
-                    })
-                    .filter(o -> o.isPresent())
-                    .flatMap(o -> o.get())
-                    .map(s -> {
-                        return new GithubJsonParser().readMergedPullRequest(s, false);
-                    })
-                    .peek(o -> {
-                        if (!o.isPresent()) {
-                            if (LOGGER.isWarnEnabled()) {
-                                //LOGGER.warn("Problem with reading json file or the entry is not push event");
-                            }
-                        }
-                    })
-                    .filter(o -> o.isPresent())
-                    .map(o -> o.get())
-                    .forEach(s -> {
-                        Long id = (Long) s.get("id");
-                        String updatedAt = (String) s.get("updated_at");
-                        Long pulRequestId = (Long) s.get("pull_request_id");
-                        String state = (String) s.get("state");
-                        Long updatedDateEpoch = TimeUtil.convertStringToEpochSecond(updatedAt).get();
-                        if (openPullRequests.containsKey(id)) {
-                            OpenPullRequest openPullRequest = openPullRequests.get(id);
-                            openPullRequest.addPullRequest(pulRequestId, state, updatedDateEpoch);
-                        } else {
-                            OpenPullRequest openPullRequest = new OpenPullRequest();
-                            openPullRequest.addPullRequest(pulRequestId, state, updatedDateEpoch);
-                            openPullRequests.put(id, openPullRequest);
-                        }
-                    });
-
+            Long id = (Long) objs.get("repo_id");
+            String updatedAt = (String) objs.get("pr_updated_at");
+            if (updatedAt == null) {
+                updatedAt = (String) objs.get("created_at");
+            }
+            Long pulRequestId = (Long) objs.get("pr_id");
+            String state = (String) objs.get("pr_state");
+            Long updatedDateEpoch = TimeUtil.convertStringToEpochSecond(updatedAt).get();
+            if (openPullRequests.containsKey(id)) {
+                PullRequest pullRequest = openPullRequests.get(id);
+                pullRequest.addPullRequest(pulRequestId, state, updatedDateEpoch);
+            } else {
+                PullRequest pullRequest = new PullRequest();
+                pullRequest.addPullRequest(pulRequestId, state, updatedDateEpoch);
+                openPullRequests.put(id, pullRequest);
+            }
             openPullRequests.entrySet().stream().forEach(e -> {
-                if (projects.containsKey(e.getKey())) {
-                    projects.get(e.getKey()).setNumOfOpenPullRequest(e.getValue().calculateNumOfOpenPullRequest());
+                if (this.projects.containsKey(e.getKey())) {
+                    this.projects.get(e.getKey()).setNumOfOpenPullRequest(e.getValue().calculateNumOfOpenPullRequest());
                 }
             });
-        } catch (Exception e) {
-            LOGGER.error("There is a error while calculating number of commit {}", e.getMessage());
-            return Optional.empty();
+        } catch (Exception ex) {
+            objs.entrySet().forEach(
+                    entry -> {
+                        LOGGER.info("Key = {}, value ={}", entry.getKey(), entry.getValue());
+                    }
+            );
+            LOGGER.error("Error while calculating number of open PR {}", ex.getMessage());
         }
-        return Optional.of(0);
+    }
+
+    @Override
+    public void resetContainer() {
+        this.openPullRequests = null;
+    }
+
+    @Override
+    public boolean filter(Map<String, Object> objs) {
+        return objs.get("event_type").equals("PullRequestEvent");
+    }
+
+    @Override
+    public void calculateMetric() {
+
+        Integer maxNumOfOpenPullRequest = this.projects.values().parallelStream()
+                .max(Comparator.comparing(Project::getNumOfOpenPullRequest)).get().getNumOfOpenPullRequest();
+        Integer minNumOfOpenPullRequest = this.projects.values().parallelStream()
+                .min(Comparator.comparing(Project::getNumOfOpenPullRequest)).get().getNumOfOpenPullRequest();
+        Iterator<Map.Entry<Long, Project>> entrySet = projects.entrySet().iterator();
+        while (entrySet.hasNext()) {
+            Float numOfOpenPullRequestMetric = 0F;
+            if (maxNumOfOpenPullRequest != 0) {
+                Map.Entry<Long, Project> entry = entrySet.next();
+                Project project = entry.getValue();
+                numOfOpenPullRequestMetric = ((float) project.getNumOfOpenPullRequest() - (float) minNumOfOpenPullRequest) /
+                        ((float) maxNumOfOpenPullRequest - (float) minNumOfOpenPullRequest);
+                project.setHeathyScore(project.getHeathyScore() + numOfOpenPullRequestMetric);
+            }
+        }
+
     }
 }
