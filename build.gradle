@@ -20,7 +20,7 @@ test {
     }
     // set heap size for the test JVM(s)
     minHeapSize = "128m"
-    maxHeapSize = "2g"
+    maxHeapSize = "4g"
 
     // set JVM arguments for the test JVM(s)
     jvmArgs '-XX:MaxPermSize=2048m'
