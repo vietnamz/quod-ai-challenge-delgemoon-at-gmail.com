@@ -49,6 +49,7 @@ public class NumOfCommitPerDays extends BaseMetric {
                 return;
             }
             id = (Long) objs.get("repo_id");
+            //LOGGER.info("running {} with id {}", this.getClass().getName(), id);
             createdAt = (String) objs.get("created_at");
             Long timeEpoch;
             if (TimeUtil.convertStringToEpochDay(createdAt).isPresent()) {
@@ -114,6 +115,11 @@ public class NumOfCommitPerDays extends BaseMetric {
     @Override
     public void resetContainer() {
         Map<Long, Commit> commits = null;
+    }
+
+    @Override
+    public String getName() {
+        return "The average number of commit per day";
     }
 }
 

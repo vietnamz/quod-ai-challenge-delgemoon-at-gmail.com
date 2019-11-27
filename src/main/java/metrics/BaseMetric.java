@@ -4,6 +4,9 @@ import github.Project;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
@@ -61,12 +64,24 @@ public abstract class BaseMetric implements IMetricAction {
     @Override
     public void execute() {
         try {
-            LOGGER.info("Executing {}", this.getClass().getName());
+            LOGGER.info("------------------BEGIN------------------");
+            LOGGER.info("--- EXECUTING {}", this.getName());
+            LocalTime start = LocalTime.now();
+            LOGGER.info("Starting time = {}", LocalDateTime.now().toString());
             properties.parallelStream().filter(this::filter).forEach(this::run);
+            this.calculateMetric();
+            this.resetContainer();
+            LocalTime end = LocalTime.now();
+            LOGGER.info("End time = {}", LocalDateTime.now().toString());
+            LOGGER.info("Elapsed Time = {}", Duration.between(start, end));
+            LOGGER.info("------------------END------------------");
         } catch (Exception e) {
             LOGGER.info(e.getMessage());
         }
-        this.calculateMetric();
-        this.resetContainer();
+    }
+
+    @Override
+    public String getName() {
+        return "Base Metric";
     }
 }

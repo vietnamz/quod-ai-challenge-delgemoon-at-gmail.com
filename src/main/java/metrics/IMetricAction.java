@@ -26,4 +26,6 @@ public interface IMetricAction {
      * Execute.
      */
     void execute();
+
+    String getName();
 }

@@ -36,6 +36,7 @@ public class NumReviewPerPullRequest extends BaseMetric {
     public void run(Map<String, Object> objs) {
         try {
             Long id = (Long) objs.get("repo_id");
+            //LOGGER.info("running {} with id {}", this.getClass().getName(), id);
             Long pulRequestId = (Long) objs.get("pull_request_id");
             if (pullRequests.containsKey(id)) {
                 PullRequest pullRequest = pullRequests.get(id);
@@ -90,5 +91,10 @@ public class NumReviewPerPullRequest extends BaseMetric {
 
         }
 
+    }
+
+    @Override
+    public String getName() {
+        return "The average number of review per PR";
     }
 }

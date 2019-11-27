@@ -34,6 +34,7 @@ public class NumOpenPullRequest extends BaseMetric {
     public void run(Map<String, Object> objs) {
         try {
             Long id = (Long) objs.get("repo_id");
+            //LOGGER.info("running {} with id {}", this.getClass().getName(), id);
             String updatedAt = (String) objs.get("pr_updated_at");
             if (updatedAt == null) {
                 updatedAt = (String) objs.get("created_at");
@@ -96,5 +97,10 @@ public class NumOpenPullRequest extends BaseMetric {
             }
         }
 
+    }
+
+    @Override
+    public String getName() {
+        return "The number of open pull request";
     }
 }

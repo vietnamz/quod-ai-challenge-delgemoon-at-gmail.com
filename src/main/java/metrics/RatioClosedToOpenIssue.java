@@ -47,6 +47,7 @@ public class RatioClosedToOpenIssue extends BaseMetric {
     public void run(Map<String, Object> objs) {
         try {
             Long id = (Long) objs.get("repo_id");
+            //LOGGER.info("running {} with id {}", this.getClass().getName(), id);
             String updatedAt = (String) objs.get("issue_updated_at");
             String action = (String) objs.get("issue_action");
             Long issueId = (Long) objs.get("issue_id");
@@ -86,6 +87,11 @@ public class RatioClosedToOpenIssue extends BaseMetric {
             }
             project.setHeathyScore(project.getHeathyScore() + ratioOfClosedToOpenIssueMetric);
         }
+    }
+
+    @Override
+    public String getName() {
+        return "ratio closed to open issue";
     }
 }
 

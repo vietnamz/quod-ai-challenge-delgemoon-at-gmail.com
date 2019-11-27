@@ -40,6 +40,7 @@ public class RatioCommitPerDev extends BaseMetric {
                 return;
             }
             id = (Long) objs.get("repo_id");
+            //LOGGER.info("running {} with id {}", this.getClass().getName(), id);
             actorId = (Long) objs.get("actor_id");
             if (commits.containsKey(id)) {
                 Commit developer = commits.get(id);
@@ -92,5 +93,10 @@ public class RatioCommitPerDev extends BaseMetric {
             project.setHeathyScore(project.getHeathyScore() + ratioCommitPerDevMetric);
         }
 
+    }
+
+    @Override
+    public String getName() {
+        return "ratio commit per developer";
     }
 }

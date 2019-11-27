@@ -9,7 +9,9 @@ import timeutil.TimeUtil;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +28,7 @@ public class HealthScoreCalculator {
     private final Logger LOGGER = LoggerFactory.getLogger(HealthScoreCalculator.class);
 
     private final static String githubArchiveUrl = "https://data.gharchive.org/";
+    public final String defaultLocation = "src/main/resources/githubdata";
 
     /**
      * The End date.
@@ -294,9 +297,12 @@ public class HealthScoreCalculator {
         if (this.projects.size() == 0) {
             throw new IllegalStateException("Please start downloading file and store before do calculation");
         }
-        metricActions.parallelStream().forEach(
+        LocalTime start = LocalTime.now();
+        metricActions.forEach(
                 IMetricAction::execute
         );
+        LOGGER.info("------------------FINISHED ALL METRICS------------------");
+        LOGGER.info("------------------in total {} --------------------", Duration.between(start, LocalTime.now()));
     }
 
     /**
@@ -313,13 +319,13 @@ public class HealthScoreCalculator {
          * validate the user input date to make it's as we expected
          */
         healthScoreCalculator.validateDateTimeInput(args[0], args[1]);
-        healthScoreCalculator.downloadAndStoreFile("src/main/resources/githubdata");
+        healthScoreCalculator.downloadAndStoreFile(healthScoreCalculator.defaultLocation);
         healthScoreCalculator.loadAllJson();
         healthScoreCalculator.readProjectInformation();
         healthScoreCalculator.initMetrics();
         healthScoreCalculator.calculateHealthyScore();
         try {
-            healthScoreCalculator.deleteDirectoryRecursion(new File("src/main/resources/githubdata"));
+            healthScoreCalculator.deleteDirectoryRecursion(new File(healthScoreCalculator.defaultLocation));
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }

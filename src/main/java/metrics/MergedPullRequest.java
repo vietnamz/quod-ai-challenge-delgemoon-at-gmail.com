@@ -36,6 +36,7 @@ public class MergedPullRequest extends BaseMetric {
     public void run(Map<String, Object> objs) {
         try {
             Long id = (Long) objs.get("pr_id");
+            //LOGGER.info("running {} with id {}", this.getClass().getName(), id);
             String createdAt = (String) objs.get("pr_created_at");
             String mergedAt = (String) objs.get("pr_merged_at");
             Long pulRequestId = (Long) objs.get("pr_id");
@@ -88,5 +89,10 @@ public class MergedPullRequest extends BaseMetric {
             }
             project.setHeathyScore(project.getHeathyScore() + numTimePullRequestGetMerged);
         }
+    }
+
+    @Override
+    public String getName() {
+        return "The average pull request get merged";
     }
 }

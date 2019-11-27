@@ -46,6 +46,7 @@ public class NumPeopleOpenNewIssue extends BaseMetric {
     public void run(Map<String, Object> objs) {
         try {
             Long id = (Long) objs.get("repo_id");
+            //LOGGER.info("running {} with id {}", this.getClass().getName(), id);
             Long userId = (Long) objs.get("actor_id");
             if (issues.containsKey(id)) {
                 Issue issue = issues.get(id);
@@ -87,5 +88,10 @@ public class NumPeopleOpenNewIssue extends BaseMetric {
             }
             project.setHeathyScore(project.getHeathyScore() + numOfPeopleOpenIssueMetric);
         }
+    }
+
+    @Override
+    public String getName() {
+        return "Number of people open new issue";
     }
 }

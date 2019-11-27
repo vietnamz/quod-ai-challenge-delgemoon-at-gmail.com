@@ -82,6 +82,7 @@ public class ContributorGrowthOverTime extends BaseMetric {
     public void run(Map<String, Object> objs) {
         try {
             Long id = (Long) objs.get("repo_id");
+            //LOGGER.info("running {} with id {}", this.getClass().getName(), id);
             String mergedAt = (String) objs.get("pr_merged_at");
             Long userId = (Long) objs.get("actor_id");
             Long pulRequestId = (Long) objs.get("pr_id");
@@ -108,5 +109,10 @@ public class ContributorGrowthOverTime extends BaseMetric {
             );
             LOGGER.error("Error while calculating contributor growth over time msg={}", e.getMessage());
         }
+    }
+
+    @Override
+    public String getName() {
+        return "The contributor growth over time";
     }
 }

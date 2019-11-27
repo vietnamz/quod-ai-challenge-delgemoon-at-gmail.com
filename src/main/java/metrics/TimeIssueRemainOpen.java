@@ -54,6 +54,7 @@ public class TimeIssueRemainOpen extends BaseMetric {
     public void run(Map<String, Object> objs) {
         try {
             Long id = (Long) objs.get("repo_id");
+            //LOGGER.info("running {} with id {}", this.getClass().getName(), id);
             String createdAt = (String) objs.get("issue_created_at");
             String closedAt = (String) objs.get("issue_updated_at");
             Long issueId = (Long) objs.get("issue_id");
@@ -100,5 +101,10 @@ public class TimeIssueRemainOpen extends BaseMetric {
             project.setHeathyScore(project.getHeathyScore() + numTimeIssueRemainMetric);
 
         }
+    }
+
+    @Override
+    public String getName() {
+        return "The average time issue remain opened";
     }
 }

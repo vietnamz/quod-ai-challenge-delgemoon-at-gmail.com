@@ -46,6 +46,7 @@ public class NumberOfRelease extends BaseMetric {
     public void run(Map<String, Object> objs) {
         try {
             Long id = (Long) objs.get("repo_id");
+            //LOGGER.info("running {} with id {}", this.getClass().getName(), id);
             Long releaseId = (Long) objs.get("release_id");
             if (releases.containsKey(id)) {
                 // This should not happen.
@@ -89,5 +90,10 @@ public class NumberOfRelease extends BaseMetric {
             }
             project.setHeathyScore(project.getHeathyScore() + numNumOfRelease);
         }
+    }
+
+    @Override
+    public String getName() {
+        return "The average number of release";
     }
 }
