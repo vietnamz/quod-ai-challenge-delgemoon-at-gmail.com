@@ -1,5 +1,6 @@
 plugins {
     id 'application'
+    id "com.gradle.build-scan" version "3.1"
 }
 
 group 'ai.quod'
@@ -12,6 +13,7 @@ repositories {
 }
 
 apply plugin: 'application'
+apply plugin: "com.gradle.build-scan"
 
 test {
     testLogging {
@@ -31,6 +33,11 @@ application {
   mainClassName = 'HealthScoreCalculator'
 }
 
+buildScan {
+    termsOfServiceUrl = 'https://gradle.com/terms-of-service'
+    termsOfServiceAgree = 'yes'
+}
+
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
     testCompile group: 'org.mockito', name: 'mockito-core', version: '2.1.0'
@@ -41,6 +48,7 @@ dependencies {
     compile group: 'commons-codec', name: 'commons-codec', version: '1.13'
     compile group: 'org.springframework', name: 'spring-core', version: '5.2.1.RELEASE'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.10.0'
+
 
 }
 
