@@ -213,6 +213,8 @@ public class FileUtil {
             if (LOGGER.isInfoEnabled()) {
                 LOGGER.info("Done to unzip the file {}", inputFile);
             }
+            // delete the input file
+            Files.deleteIfExists(Paths.get(inputFile));
             return Optional.of(outputFile);
 
         } catch (IOException ex) {
