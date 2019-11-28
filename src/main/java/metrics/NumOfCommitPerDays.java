@@ -65,18 +65,6 @@ public class NumOfCommitPerDays extends BaseMetric {
                 commit.incrCommitForDay(timeEpoch);
                 commits.put(id, commit);
             }
-            commits.entrySet().parallelStream().forEach(
-                    entrySet -> {
-                        Commit commit = entrySet.getValue();
-                        if (this.projects.containsKey(entrySet.getKey())) {
-                            //synchronized (lock) {
-                            Project project = this.projects.get(entrySet.getKey());
-                            project.setNumCommit(commit.calculateAverageCommit());
-                            //}
-
-                        }
-                    }
-            );
         } catch (Exception ex) {
             objs.entrySet().forEach(
                     entry -> {
@@ -95,6 +83,15 @@ public class NumOfCommitPerDays extends BaseMetric {
 
     @Override
     public void calculateMetric() {
+        commits.entrySet().parallelStream().forEach(
+                entrySet -> {
+                    Commit commit = entrySet.getValue();
+                    if (this.projects.containsKey(entrySet.getKey())) {
+                        Project project = this.projects.get(entrySet.getKey());
+                        project.setNumCommit(commit.calculateAverageCommit());
+                    }
+                }
+        );
         Integer maxNumberOfcommit = this.projects.values().parallelStream()
                 .max(Comparator.comparing(Project::getNumCommit)).get().getNumCommit();
         Integer minNumberOfcommit = this.projects.values().parallelStream()

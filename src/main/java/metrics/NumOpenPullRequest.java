@@ -53,11 +53,6 @@ public class NumOpenPullRequest extends BaseMetric {
                 pullRequest.addPullRequest(pulRequestId, state, updatedDateEpoch);
                 openPullRequests.put(id, pullRequest);
             }
-            openPullRequests.entrySet().stream().forEach(e -> {
-                if (this.projects.containsKey(e.getKey())) {
-                    this.projects.get(e.getKey()).setNumOfOpenPullRequest(e.getValue().calculateNumOfOpenPullRequest());
-                }
-            });
         } catch (Exception ex) {
             objs.entrySet().forEach(
                     entry -> {
@@ -80,7 +75,11 @@ public class NumOpenPullRequest extends BaseMetric {
 
     @Override
     public void calculateMetric() {
-
+        openPullRequests.entrySet().stream().forEach(e -> {
+            if (this.projects.containsKey(e.getKey())) {
+                this.projects.get(e.getKey()).setNumOfOpenPullRequest(e.getValue().calculateNumOfOpenPullRequest());
+            }
+        });
         Integer maxNumOfOpenPullRequest = this.projects.values().parallelStream()
                 .max(Comparator.comparing(Project::getNumOfOpenPullRequest)).get().getNumOfOpenPullRequest();
         Integer minNumOfOpenPullRequest = this.projects.values().parallelStream()

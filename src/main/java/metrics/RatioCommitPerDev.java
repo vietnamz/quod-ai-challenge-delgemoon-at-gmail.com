@@ -50,11 +50,6 @@ public class RatioCommitPerDev extends BaseMetric {
                 developer.addCreator(actorId);
                 commits.put(id, developer);
             }
-            commits.entrySet().parallelStream().forEach(s -> {
-                if (projects.containsKey(s.getKey())) {
-                    projects.get(s.getKey()).setRatioCommitPerDev(s.getValue().calculateRatioCommitPerDev());
-                }
-            });
         } catch (Exception ex) {
             objs.entrySet().forEach(
                     entry -> {
@@ -77,6 +72,11 @@ public class RatioCommitPerDev extends BaseMetric {
 
     @Override
     public void calculateMetric() {
+        commits.entrySet().parallelStream().forEach(s -> {
+            if (projects.containsKey(s.getKey())) {
+                projects.get(s.getKey()).setRatioCommitPerDev(s.getValue().calculateRatioCommitPerDev());
+            }
+        });
         Integer maxRatioCommitPerDev = this.projects.values().parallelStream()
                 .max(Comparator.comparing(Project::getRatioCommitPerDev)).get().getRatioCommitPerDev();
         Integer minRatioCommitPerDev = this.projects.values().parallelStream()

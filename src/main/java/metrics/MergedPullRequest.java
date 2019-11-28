@@ -73,6 +73,11 @@ public class MergedPullRequest extends BaseMetric {
 
     @Override
     public void calculateMetric() {
+        pullRequests.entrySet().parallelStream().forEach(entry -> {
+            if (projects.containsKey(entry.getKey())) {
+                projects.get(entry.getKey()).setAveragePullRequestGetMerged(entry.getValue().calculateTheAverageTimePullRequestGetMerged());
+            }
+        });
         Long minTimePullRequestGetMerged = this.projects.values().parallelStream()
                 .min(Comparator.comparing(Project::getAveragePullRequestGetMerged)).get().getAveragePullRequestGetMerged();
         Long maxTimePullRequestGetMerged = this.projects.values().parallelStream()

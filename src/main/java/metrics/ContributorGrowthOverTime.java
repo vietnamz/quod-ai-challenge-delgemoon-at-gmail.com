@@ -49,6 +49,11 @@ public class ContributorGrowthOverTime extends BaseMetric {
 
     @Override
     public void calculateMetric() {
+        pullRequests.entrySet().stream().forEach(entry -> {
+            if (this.projects.containsKey(entry.getKey())) {
+                this.projects.get(entry.getKey()).setContributorGrowthRate(entry.getValue().calculateContrinutorGrownRate());
+            }
+        });
         Float minAvgContributorGrowthRate = this.projects.values().parallelStream()
                 .min(Comparator.comparing(Project::getContributorGrowthRate)).get().getContributorGrowthRate();
         Float maxAvgContributorGrowthRate = this.projects.values().parallelStream()
@@ -96,11 +101,6 @@ public class ContributorGrowthOverTime extends BaseMetric {
                 pullRequest.addContributor(pulRequestId, userId, mergedDate);
                 pullRequests.put(id, pullRequest);
             }
-            pullRequests.entrySet().stream().forEach(entry -> {
-                if (this.projects.containsKey(entry.getKey())) {
-                    this.projects.get(entry.getKey()).setContributorGrowthRate(entry.getValue().calculateContrinutorGrownRate());
-                }
-            });
         } catch (Exception e) {
             objs.entrySet().forEach(
                     entry -> {

@@ -46,11 +46,6 @@ public class NumReviewPerPullRequest extends BaseMetric {
                 pullRequest.addPRReview(pulRequestId);
                 pullRequests.put(id, pullRequest);
             }
-            pullRequests.entrySet().stream().forEach(entry -> {
-                if (projects.containsKey(entry.getKey())) {
-                    projects.get(entry.getKey()).setAverageReviewPerPR(entry.getValue().calculateAverageNumOfReview());
-                }
-            });
         } catch (Exception e) {
             objs.entrySet().forEach(
                     entry -> {
@@ -74,6 +69,11 @@ public class NumReviewPerPullRequest extends BaseMetric {
 
     @Override
     public void calculateMetric() {
+        pullRequests.entrySet().stream().forEach(entry -> {
+            if (projects.containsKey(entry.getKey())) {
+                projects.get(entry.getKey()).setAverageReviewPerPR(entry.getValue().calculateAverageNumOfReview());
+            }
+        });
         Integer minAvgNumReviewPerPR = this.projects.values().parallelStream()
                 .min(Comparator.comparing(Project::getAverageReviewPerPR)).get().getAverageReviewPerPR();
         Integer maxAvgNumReviewPerPR = this.projects.values().parallelStream()

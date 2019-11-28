@@ -87,6 +87,11 @@ public class TimeIssueRemainOpen extends BaseMetric {
 
     @Override
     public void calculateMetric() {
+        this.issues.entrySet().parallelStream().forEach(entry -> {
+            if (projects.containsKey(entry.getKey())) {
+                projects.get(entry.getKey()).setAverageIssueOpen(entry.getValue().calculateTheAverageIssueOpen());
+            }
+        });
         Long minTimeIssueRemainingOpen = this.projects.values().parallelStream()
                 .min(Comparator.comparing(Project::getAverageIssueOpen)).get().getAverageIssueOpen();
         Iterator<Map.Entry<Long, Project>> entrySet = projects.entrySet().iterator();

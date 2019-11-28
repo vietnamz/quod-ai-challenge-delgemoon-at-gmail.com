@@ -57,11 +57,6 @@ public class NumberOfRelease extends BaseMetric {
                 release.addRelease(releaseId);
                 releases.put(id, release);
             }
-            releases.entrySet().stream().forEach(e -> {
-                if (this.projects.containsKey(e.getKey())) {
-                    this.projects.get(e.getKey()).setNumOfReleases(e.getValue().calculateNumOfRelease());
-                }
-            });
         } catch (Exception ex) {
             objs.entrySet().forEach(
                     entry -> {
@@ -74,6 +69,11 @@ public class NumberOfRelease extends BaseMetric {
 
     @Override
     public void calculateMetric() {
+        releases.entrySet().stream().forEach(e -> {
+            if (this.projects.containsKey(e.getKey())) {
+                this.projects.get(e.getKey()).setNumOfReleases(e.getValue().calculateNumOfRelease());
+            }
+        });
         Integer minNumOfRelease = this.projects.values().parallelStream()
                 .min(Comparator.comparing(Project::getNumOfReleases)).get().getNumOfReleases();
         Integer maxNumOfRelease = this.projects.values().parallelStream()

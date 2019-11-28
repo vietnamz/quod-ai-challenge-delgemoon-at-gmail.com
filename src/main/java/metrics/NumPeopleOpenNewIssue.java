@@ -56,11 +56,6 @@ public class NumPeopleOpenNewIssue extends BaseMetric {
                 issue.addNewCreator(userId);
                 issues.put(id, issue);
             }
-            issues.entrySet().stream().forEach(e -> {
-                if (projects.containsKey(e.getKey())) {
-                    projects.get(e.getKey()).setNumOfPeopleOpenNewIssue(e.getValue().calculateUserOpenNewIssue());
-                }
-            });
         } catch (Exception ex) {
             objs.entrySet().forEach(
                     entry -> {
@@ -73,6 +68,11 @@ public class NumPeopleOpenNewIssue extends BaseMetric {
 
     @Override
     public void calculateMetric() {
+        issues.entrySet().stream().forEach(e -> {
+            if (projects.containsKey(e.getKey())) {
+                projects.get(e.getKey()).setNumOfPeopleOpenNewIssue(e.getValue().calculateUserOpenNewIssue());
+            }
+        });
         Integer minNumOfPeopleOpenIssue = this.projects.values().parallelStream()
                 .min(Comparator.comparing(Project::getNumOfPeopleOpenNewIssue)).get().getNumOfPeopleOpenNewIssue();
         Integer maxNumOfPeopleOpenIssue = this.projects.values().parallelStream()

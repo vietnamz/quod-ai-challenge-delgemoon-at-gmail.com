@@ -72,6 +72,11 @@ public class RatioClosedToOpenIssue extends BaseMetric {
 
     @Override
     public void calculateMetric() {
+        issues.entrySet().parallelStream().forEach(entry -> {
+            if (projects.containsKey(entry.getKey())) {
+                projects.get(entry.getKey()).setRationClosedToOpenIssue(entry.getValue().calculateRatioClosedToOpenIssue());
+            }
+        });
         Float minRatioClosedToOpenIssue = this.projects.values().parallelStream()
                 .min(Comparator.comparing(Project::getRationClosedToOpenIssue)).get().getRationClosedToOpenIssue();
         Float maxRatioClosedToOpenIssue = this.projects.values().parallelStream()
