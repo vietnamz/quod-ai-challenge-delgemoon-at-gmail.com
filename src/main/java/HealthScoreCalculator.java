@@ -255,6 +255,8 @@ public class HealthScoreCalculator {
             LOGGER.warn("No data is download yet!!!!");
             throw new IllegalStateException("No data is download yet!!!!");
         }
+        LocalTime start = LocalTime.now();
+        LOGGER.info("-----STARTING LOADING JSON DATA INTO MEMORY, PLS WAIT--------");
         this.jsons = this.listOfJsonFiles.parallelStream().map(f -> FileUtil.getLines(f))
                 .peek(o -> {
                     if (!o.isPresent()) {
@@ -271,6 +273,8 @@ public class HealthScoreCalculator {
                 })
                 .filter(Optional::isPresent)
                 .map(Optional::get).collect(Collectors.toList());
+        LOGGER.info("------------------FINISHED LOADING------------------");
+        LOGGER.info("------------------ELAPSE TIME = {} --------------------", Duration.between(start, LocalTime.now()));
     }
 
     /**
